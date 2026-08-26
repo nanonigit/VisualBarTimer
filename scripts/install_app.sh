@@ -22,6 +22,11 @@ mkdir -p "$RESOURCES_DIR"
 cp ".build/release/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# アプリアイコンをコピー
+if [ -f "$DIR/Resources/AppIcon.icns" ]; then
+    cp "$DIR/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+fi
+
 # Info.plist を生成
 cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -32,6 +37,8 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <string>ja</string>
     <key>CFBundleExecutable</key>
     <string>VisualBarTimer</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.naoki.VisualBarTimer</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -41,9 +48,9 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
