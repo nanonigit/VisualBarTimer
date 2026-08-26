@@ -67,6 +67,10 @@
   * **Click / Drag on Bar**: Set time directly by clicking anywhere on the bar.
   * **Click Clock to Edit**: Tap the digital clock to type custom minutes with your keyboard.
   * **Quick Presets**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`.
+* **Daily Activity Tracking & Export**:
+  * Tracks total timer duration and session counts per day in real-time.
+  * **Export to CSV / JSON** with one click.
+  * Automatically saves logs to `~/Library/Application Support/VisualBarTimer/activity_logs.json` for seamless integration with Obsidian, Notion, Python scripts, Raycast, and Shortcuts.
 * **Modes & Feedback**:
   * Supports **Countdown**, **Countup**, and **Pomodoro** (25m Focus / 5m Break).
   * Audible alarm, flash animation, and macOS system notification upon completion.
@@ -116,6 +120,10 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
   * **バーを直接クリック/ドラッグ**: バー上の位置をクリックして直感的に時間をセット
   * **分数の直接手入力**: デジタル時計部分（`10:00`など）をクリックしてキーボードで好きな分数を即入力
   * **ワンクリックプリセット**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`
+* **日別稼働ログ・統計 ＆ 外部連携**:
+  * 一日あたりの総タイマー稼働時間とセッション回数を自動でリアルタイム集計。
+  * **CSV / JSON 形式でのワンクリック書き出し**・クリップボードコピーに対応。
+  * ログは `~/Library/Application Support/VisualBarTimer/activity_logs.json` に標準JSONで自動保存されるため、Obsidian、Notion、Pythonスクリプト、Raycast、ショートカット等と容易に連携可能。
 * **多彩なモード & 通知**:
   * **カウントダウン** / **カウントアップ** / **ポモドーロ**（25分作業 / 5分休憩）
   * タイムアップ時にアラーム音 ＋ バーの点滅フラッシュ ＋ macOSシステム通知
