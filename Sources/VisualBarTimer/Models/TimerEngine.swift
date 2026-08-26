@@ -6,7 +6,7 @@ import UserNotifications
 class TimerEngine: ObservableObject {
     @Published var targetDuration: TimeInterval = 600 {
         didSet {
-            UserDefaults.standard.set(targetDuration, forKey: "saved_target_duration")
+            saveCurrentDuration()
         }
     }
     @Published var remainingTime: TimeInterval = 600
@@ -36,18 +36,69 @@ class TimerEngine: ObservableObject {
     
     var currentMode: TimerMode = .countdown {
         didSet {
+            loadDurationForCurrentMode()
             reset()
         }
     }
     
     init() {
-        let savedDuration = UserDefaults.standard.double(forKey: "saved_target_duration")
-        if savedDuration > 0 {
-            self.targetDuration = savedDuration
-            self.remainingTime = savedDuration
-            self.pausedRemainingTime = savedDuration
+        // 保存されたモードの読み込み
+        if let rawMode = UserDefaults.standard.string(forKey: "saved_mode"),
+           let mode = TimerMode(rawValue: rawMode) {
+            self.currentMode = mode
         }
+        
+        loadDurationForCurrentMode()
+        self.remainingTime = self.targetDuration
+        self.pausedRemainingTime = self.targetDuration
+        
         requestNotificationPermission()
+    }
+    
+    private func saveCurrentDuration() {
+        switch currentMode {
+        case .countdown:
+            UserDefaults.standard.set(targetDuration, forKey: "saved_countdown_duration")
+        case .countup:
+            UserDefaults.standard.set(targetDuration, forKey: "saved_countup_duration")
+        case .pomodoro:
+            if pomodoroPhase == .work {
+                UserDefaults.standard.set(targetDuration, forKey: "saved_pomo_work_duration")
+            } else {
+                UserDefaults.standard.set(targetDuration, forKey: "saved_pomo_break_duration")
+            }
+        }
+        UserDefaults.standard.set(targetDuration, forKey: "saved_target_duration")
+    }
+    
+    private func loadDurationForCurrentMode() {
+        let key: String
+        let fallback: TimeInterval
+        
+        switch currentMode {
+        case .countdown:
+            key = "saved_countdown_duration"
+            fallback = 600 // 10分
+        case .countup:
+            key = "saved_countup_duration"
+            fallback = 1800 // 30分
+        case .pomodoro:
+            if pomodoroPhase == .work {
+                key = "saved_pomo_work_duration"
+                fallback = 1500 // 25分
+            } else {
+                key = "saved_pomo_break_duration"
+                fallback = 300 // 5分
+            }
+        }
+        
+        let saved = UserDefaults.standard.double(forKey: key)
+        if saved > 0 {
+            self.targetDuration = saved
+        } else {
+            let globalSaved = UserDefaults.standard.double(forKey: "saved_target_duration")
+            self.targetDuration = globalSaved > 0 ? globalSaved : fallback
+        }
     }
     
     private func requestNotificationPermission() {
@@ -93,10 +144,6 @@ class TimerEngine: ObservableObject {
         stopFlashing()
         isFinished = false
         
-        if currentMode == .pomodoro {
-            targetDuration = pomodoroPhase == .work ? (25 * 60) : (5 * 60)
-        }
-        
         remainingTime = targetDuration
         elapsedTime = 0
         pausedRemainingTime = targetDuration
@@ -121,7 +168,6 @@ class TimerEngine: ObservableObject {
     
     func setProgressRatio(_ ratio: Double) {
         let clamped = max(0.01, min(1.0, ratio))
-        // 10秒単位に丸める
         var seconds = targetDuration * clamped
         if targetDuration > 60 {
             seconds = round(seconds / 10.0) * 10.0
@@ -167,7 +213,7 @@ class TimerEngine: ObservableObject {
         if currentMode == .pomodoro {
             // ポモドーロの自動フェーズ切り替え
             pomodoroPhase = (pomodoroPhase == .work) ? .rest : .work
-            targetDuration = (pomodoroPhase == .work) ? (25 * 60) : (5 * 60)
+            loadDurationForCurrentMode()
             remainingTime = targetDuration
             elapsedTime = 0
             pausedRemainingTime = targetDuration
@@ -184,7 +230,7 @@ class TimerEngine: ObservableObject {
             Task { @MainActor in
                 self.isFlashing.toggle()
                 count += 1
-                if count >= 16 { // 約5.5秒点滅
+                if count >= 16 {
                     self.stopFlashing()
                 }
             }
