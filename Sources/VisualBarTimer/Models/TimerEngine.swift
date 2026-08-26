@@ -4,7 +4,11 @@ import UserNotifications
 
 @MainActor
 class TimerEngine: ObservableObject {
-    @Published var targetDuration: TimeInterval = 600 // 10分
+    @Published var targetDuration: TimeInterval = 600 {
+        didSet {
+            UserDefaults.standard.set(targetDuration, forKey: "saved_target_duration")
+        }
+    }
     @Published var remainingTime: TimeInterval = 600
     @Published var elapsedTime: TimeInterval = 0
     @Published var isRunning: Bool = false
@@ -37,6 +41,12 @@ class TimerEngine: ObservableObject {
     }
     
     init() {
+        let savedDuration = UserDefaults.standard.double(forKey: "saved_target_duration")
+        if savedDuration > 0 {
+            self.targetDuration = savedDuration
+            self.remainingTime = savedDuration
+            self.pausedRemainingTime = savedDuration
+        }
         requestNotificationPermission()
     }
     

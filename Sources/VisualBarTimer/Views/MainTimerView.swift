@@ -38,7 +38,7 @@ struct MainTimerView: View {
         )
         .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
         .onAppear {
-            setupWindow()
+            setupInitialWindow()
         }
         .onChange(of: settings.size) { _ in
             updateWindowFrame()
@@ -235,29 +235,79 @@ struct MainTimerView: View {
         }
     }
     
-    private func setupWindow() {
+    // MARK: - 初期ウィンドウ設定 (保存位置の復元 または 画面中央配置)
+    private func setupInitialWindow() {
         DispatchQueue.main.async {
-            if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) {
-                window.level = settings.isAlwaysOnTop ? .floating : .normal
-                window.isOpaque = false
-                window.backgroundColor = .clear
-                window.isMovableByWindowBackground = true
-                window.titlebarAppearsTransparent = true
-                window.titleVisibility = .hidden
-                updateWindowFrame()
+            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) else { return }
+            
+            window.level = settings.isAlwaysOnTop ? .floating : .normal
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.isMovableByWindowBackground = true
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            
+            let dims = settings.size.windowDimensions(orientation: settings.orientation)
+            let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]
+            let visible = screen.visibleFrame
+            
+            var targetX: CGFloat
+            var targetY: CGFloat
+            
+            if UserDefaults.standard.object(forKey: "saved_window_x") != nil,
+               UserDefaults.standard.object(forKey: "saved_window_y") != nil {
+                targetX = CGFloat(UserDefaults.standard.double(forKey: "saved_window_x"))
+                targetY = CGFloat(UserDefaults.standard.double(forKey: "saved_window_y"))
+                
+                // 画面外への完全なはみ出し（マルチモニター切断時等）を防ぐ安全クランプ
+                targetX = max(visible.minX - dims.width + 50, min(visible.maxX - 50, targetX))
+                targetY = max(visible.minY + 20, min(visible.maxY - dims.height, targetY))
+            } else {
+                // 初回は画面中央やや上寄り
+                targetX = visible.origin.x + (visible.size.width - dims.width) / 2.0
+                targetY = visible.origin.y + (visible.size.height - dims.height) * 0.65
+            }
+            
+            let newFrame = NSRect(x: targetX, y: targetY, width: dims.width, height: dims.height)
+            window.setFrame(newFrame, display: true, animate: false)
+            
+            // ウィンドウ移動時の位置自動保存
+            NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { notif in
+                if let win = notif.object as? NSWindow, win.title != "タイマー設定" {
+                    UserDefaults.standard.set(Double(win.frame.origin.x), forKey: "saved_window_x")
+                    UserDefaults.standard.set(Double(win.frame.origin.y), forKey: "saved_window_y")
+                }
             }
         }
     }
     
+    // MARK: - サイズ変更時のウィンドウ更新 (位置保存付き)
     private func updateWindowFrame() {
         DispatchQueue.main.async {
             guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) else { return }
             let dims = settings.size.windowDimensions(orientation: settings.orientation)
             var currentFrame = window.frame
             let oldTop = currentFrame.origin.y + currentFrame.size.height
+            
             currentFrame.size = CGSize(width: dims.width, height: dims.height)
             currentFrame.origin.y = oldTop - dims.height
+            
+            // 画面端からの過度なはみ出しを調整
+            if let screen = window.screen ?? NSScreen.main {
+                let visible = screen.visibleFrame
+                if currentFrame.maxX > visible.maxX + (dims.width - 40) {
+                    currentFrame.origin.x = visible.maxX - currentFrame.size.width
+                }
+                if currentFrame.minX < visible.minX - (dims.width - 40) {
+                    currentFrame.origin.x = visible.minX
+                }
+            }
+            
             window.setFrame(currentFrame, display: true, animate: true)
+            
+            // 位置を保存
+            UserDefaults.standard.set(Double(currentFrame.origin.x), forKey: "saved_window_x")
+            UserDefaults.standard.set(Double(currentFrame.origin.y), forKey: "saved_window_y")
         }
     }
 }
