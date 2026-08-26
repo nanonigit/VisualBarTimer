@@ -112,6 +112,21 @@ final class ActivityLogManager: ObservableObject {
         saveLogs()
     }
     
+    /// 特定の日付の総稼働時間を手動修正
+    func updateDayTotal(dateKey: String, newTotalSeconds: TimeInterval) {
+        let clamped = max(0, newTotalSeconds)
+        var day = dailyLogs[dateKey] ?? DayLog(dateString: dateKey, totalSeconds: 0, sessionCount: 0, sessions: [])
+        day.totalSeconds = clamped
+        if day.sessionCount == 0 && clamped > 0 {
+            day.sessionCount = 1
+        }
+        dailyLogs[dateKey] = day
+        if dateKey == todayKey {
+            todayTotalSeconds = clamped
+        }
+        saveLogs()
+    }
+    
     private func updateTodayTotal() {
         todayTotalSeconds = dailyLogs[todayKey]?.totalSeconds ?? 0
     }

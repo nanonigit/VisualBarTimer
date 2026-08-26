@@ -4,7 +4,10 @@ import AppKit
 struct StatsWindowView: View {
     @ObservedObject var logManager = ActivityLogManager.shared
     var onClose: (() -> Void)? = nil
+    
     @State private var copiedMessage: String? = nil
+    @State private var editingDateKey: String? = nil
+    @State private var editMinutesText: String = ""
     
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -13,7 +16,7 @@ struct StatsWindowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("タイマー稼働ログ・統計")
                         .font(.system(size: 16, weight: .bold))
-                    Text("日々の集中・タイマー稼働時間を記録・書き出し")
+                    Text("日々の集中・タイマー稼働時間を記録・修正・書き出し")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -27,11 +30,27 @@ struct StatsWindowView: View {
             Divider()
             
             // 今日のサマリーカード
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("本日の総タイマー稼働")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("本日の総タイマー稼働")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button(action: {
+                            openEditor(for: logManager.todayKey)
+                        }) {
+                            Label("時間を修正", systemImage: "pencil")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.cyan)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.cyan.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
                     Text(logManager.todayFormattedDuration)
                         .font(.system(size: 24, weight: .heavy, design: .monospaced))
                         .foregroundColor(.green)
@@ -41,7 +60,7 @@ struct StatsWindowView: View {
                 .background(Color.white.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("セッション回数")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
@@ -57,7 +76,7 @@ struct StatsWindowView: View {
             
             // 日別履歴リスト
             VStack(alignment: .leading, spacing: 8) {
-                Text("日別履歴 (最近の日付)")
+                Text("日別履歴 (日付ごとの修正も可能)")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.secondary)
                 
@@ -91,6 +110,20 @@ struct StatsWindowView: View {
                                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                                         .foregroundColor(.white)
                                         .frame(width: 80, alignment: .trailing)
+                                    
+                                    // 修正ボタン
+                                    Button(action: {
+                                        openEditor(for: day.dateString)
+                                    }) {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.white.opacity(0.6))
+                                            .padding(4)
+                                            .background(Color.white.opacity(0.08))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("この日の稼働時間を修正")
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -100,7 +133,7 @@ struct StatsWindowView: View {
                         }
                     }
                 }
-                .frame(height: 150)
+                .frame(height: 140)
             }
             
             Divider()
@@ -165,7 +198,6 @@ struct StatsWindowView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .buttonStyle(.plain)
-                    .help("Obsidianやスクリプト等で直接連携できるJSONファイルの場所を開きます")
                 }
                 
                 if let msg = copiedMessage {
@@ -176,7 +208,19 @@ struct StatsWindowView: View {
             }
         }
         .padding(20)
-        .frame(width: 480, height: 490)
+        .frame(width: 500, height: 510)
+        .sheet(item: Binding<IdentifiableDate?>(
+            get: { editingDateKey.map { IdentifiableDate(dateKey: $0) } },
+            set: { editingDateKey = $0?.dateKey }
+        )) { item in
+            EditDurationSheet(dateKey: item.dateKey) {
+                editingDateKey = nil
+            }
+        }
+    }
+    
+    private func openEditor(for dateKey: String) {
+        editingDateKey = dateKey
     }
     
     private func showToast(_ text: String) {
@@ -187,45 +231,92 @@ struct StatsWindowView: View {
     }
 }
 
-final class StatsWindowManager {
-    static let shared = StatsWindowManager()
-    private var window: NSWindow?
+struct IdentifiableDate: Identifiable {
+    var id: String { dateKey }
+    let dateKey: String
+}
+
+// 稼働時間編集シート
+struct EditDurationSheet: View {
+    let dateKey: String
+    var onDismiss: () -> Void
     
-    private init() {}
+    @State private var inputMinutes: String = ""
+    @ObservedObject var logManager = ActivityLogManager.shared
     
-    func show() {
-        if let existing = window {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("稼働時間の修正: \(dateKey)")
+                    .font(.headline)
+                Spacer()
+                Button("閉じる") {
+                    onDismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+            }
+            
+            Divider()
+            
+            Text("止め忘れや手動調整したい分数を直接入力してください：")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 8) {
+                TextField("分数", text: $inputMinutes)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .frame(width: 100)
+                Text("分 に修正する")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            
+            // クイック微調整ボタン
+            HStack(spacing: 6) {
+                Text("微調整:")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                ForEach([-30, -15, -5, 5, 15, 30], id: \.self) { delta in
+                    Button(delta > 0 ? "+\(delta)分" : "\(delta)分") {
+                        adjustMinutes(by: delta)
+                    }
+                    .font(.system(size: 10))
+                }
+            }
+            
+            Spacer()
+            
+            HStack {
+                Spacer()
+                Button("キャンセル") {
+                    onDismiss()
+                }
+                Button("保存する") {
+                    saveChanges()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
         }
-        
-        let contentView = StatsWindowView { [weak self] in
-            self?.close()
+        .padding(20)
+        .frame(width: 380, height: 230)
+        .onAppear {
+            let currentSecs = logManager.dailyLogs[dateKey]?.totalSeconds ?? 0
+            let currentMins = Int(round(currentSecs / 60.0))
+            inputMinutes = "\(currentMins)"
         }
-        
-        let hostingController = NSHostingController(rootView: contentView)
-        let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 490),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        newWindow.title = "タイマー稼働統計・ログエクスポート"
-        newWindow.contentViewController = hostingController
-        newWindow.isReleasedWhenClosed = false
-        newWindow.center()
-        newWindow.level = .floating
-        newWindow.isMovableByWindowBackground = true
-        
-        self.window = newWindow
-        newWindow.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
     
-    func close() {
-        window?.orderOut(nil)
-        window = nil
+    private func adjustMinutes(by delta: Int) {
+        let current = Int(inputMinutes) ?? 0
+        let updated = max(0, current + delta)
+        inputMinutes = "\(updated)"
+    }
+    
+    private func saveChanges() {
+        if let mins = Double(inputMinutes) {
+            logManager.updateDayTotal(dateKey: dateKey, newTotalSeconds: mins * 60.0)
+        }
+        onDismiss()
     }
 }
