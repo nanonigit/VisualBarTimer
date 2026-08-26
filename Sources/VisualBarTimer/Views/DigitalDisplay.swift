@@ -35,13 +35,34 @@ struct DigitalDisplay: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(modeBadgeText)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(badgeColor)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(badgeColor.opacity(0.15))
-                .clipShape(Capsule())
+            HStack(spacing: 6) {
+                Text(modeBadgeText)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(badgeColor)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(badgeColor.opacity(0.15))
+                    .clipShape(Capsule())
+                
+                // 本日の累計稼働時間
+                Button(action: {
+                    StatsWindowManager.shared.show()
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 8))
+                        Text("今日: \(ActivityLogManager.shared.todayFormattedDuration)")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(.white.opacity(0.75))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help("クリックして本日の統計・履歴ログ・エクスポートを開く")
+            }
             
             if isEditing {
                 HStack(spacing: 4) {

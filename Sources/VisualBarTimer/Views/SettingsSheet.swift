@@ -105,6 +105,33 @@ struct SettingsSheet: View {
                     }
                 }
                 .toggleStyle(.switch)
+                
+                Divider()
+                
+                // 稼働ログ・統計
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("タイマー稼働ログ・外部連携")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    
+                    Button(action: {
+                        StatsWindowManager.shared.show()
+                    }) {
+                        HStack {
+                            Label("稼働統計・CSV/JSONエクスポート", systemImage: "chart.bar.doc.horizontal")
+                                .font(.system(size: 12, weight: .medium))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(24)
         }

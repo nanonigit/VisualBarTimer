@@ -21,6 +21,7 @@ class TimerEngine: ObservableObject {
     private var startTime: Date?
     private var pausedRemainingTime: TimeInterval = 600
     private var pausedElapsedTime: TimeInterval = 0
+    private var lastRecordedTime: Date?
     
     var progress: Double {
         guard targetDuration > 0 else { return 0 }
@@ -42,7 +43,6 @@ class TimerEngine: ObservableObject {
     }
     
     init() {
-        // 保存されたモードの読み込み
         if let rawMode = UserDefaults.standard.string(forKey: "saved_mode"),
            let mode = TimerMode(rawValue: rawMode) {
             self.currentMode = mode
@@ -78,17 +78,17 @@ class TimerEngine: ObservableObject {
         switch currentMode {
         case .countdown:
             key = "saved_countdown_duration"
-            fallback = 600 // 10分
+            fallback = 600
         case .countup:
             key = "saved_countup_duration"
-            fallback = 1800 // 30分
+            fallback = 1800
         case .pomodoro:
             if pomodoroPhase == .work {
                 key = "saved_pomo_work_duration"
-                fallback = 1500 // 25分
+                fallback = 1500
             } else {
                 key = "saved_pomo_break_duration"
-                fallback = 300 // 5分
+                fallback = 300
             }
         }
         
@@ -111,7 +111,9 @@ class TimerEngine: ObservableObject {
         isFinished = false
         isRunning = true
         startTime = Date()
+        lastRecordedTime = Date()
         
+        ActivityLogManager.shared.onTimerStarted()
         SoundManager.shared.playStart()
         
         timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
@@ -129,6 +131,13 @@ class TimerEngine: ObservableObject {
         timer = nil
         pausedRemainingTime = remainingTime
         pausedElapsedTime = elapsedTime
+        
+        if let start = startTime {
+            let delta = Date().timeIntervalSince(start)
+            ActivityLogManager.shared.onTimerStopped(mode: currentMode.rawValue, elapsedDelta: delta)
+        }
+        startTime = nil
+        lastRecordedTime = nil
     }
     
     func toggle() {
@@ -140,7 +149,9 @@ class TimerEngine: ObservableObject {
     }
     
     func reset() {
-        pause()
+        if isRunning {
+            pause()
+        }
         stopFlashing()
         isFinished = false
         
@@ -177,7 +188,17 @@ class TimerEngine: ObservableObject {
     
     private func tick() {
         guard let start = startTime else { return }
-        let delta = Date().timeIntervalSince(start)
+        let now = Date()
+        let delta = now.timeIntervalSince(start)
+        
+        // 稼働時間のログ加算
+        if let last = lastRecordedTime {
+            let stepDelta = now.timeIntervalSince(last)
+            if stepDelta >= 1.0 {
+                ActivityLogManager.shared.addRunningTime(seconds: stepDelta)
+                lastRecordedTime = now
+            }
+        }
         
         switch currentMode {
         case .countdown, .pomodoro:
@@ -204,6 +225,13 @@ class TimerEngine: ObservableObject {
     }
     
     private func timerFinished() {
+        if let start = startTime {
+            let delta = Date().timeIntervalSince(start)
+            ActivityLogManager.shared.onTimerStopped(mode: currentMode.rawValue, elapsedDelta: delta)
+        }
+        startTime = nil
+        lastRecordedTime = nil
+        
         pause()
         isFinished = true
         startFlashing()
@@ -211,7 +239,6 @@ class TimerEngine: ObservableObject {
         sendNotification()
         
         if currentMode == .pomodoro {
-            // ポモドーロの自動フェーズ切り替え
             pomodoroPhase = (pomodoroPhase == .work) ? .rest : .work
             loadDurationForCurrentMode()
             remainingTime = targetDuration
