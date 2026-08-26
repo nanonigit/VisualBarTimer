@@ -22,7 +22,7 @@ struct VisualBarView: View {
     private func horizontalBar(size: CGSize) -> some View {
         let activeSegments = Int(round(engine.progress * Double(segmentCount)))
         
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             // LEDセグメントバー
             HStack(spacing: 2) {
                 ForEach(0..<segmentCount, id: \.self) { index in
@@ -30,20 +30,21 @@ struct VisualBarView: View {
                     let color = segmentColor(forIndex: index, total: segmentCount, progress: engine.progress)
                     
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(isActive ? (engine.isFlashing ? Color.white : color) : Color.white.opacity(0.08))
+                        .fill(isActive ? (engine.isFlashing ? Color.white : color) : Color.white.opacity(0.16))
                         .overlay(
                             RoundedRectangle(cornerRadius: 2)
-                                .stroke(isActive ? Color.white.opacity(0.3) : Color.clear, lineWidth: 0.5)
+                                .stroke(isActive ? Color.white.opacity(0.4) : Color.black.opacity(0.6), lineWidth: 0.5)
                         )
-                        .shadow(color: isActive ? color.opacity(0.6) : Color.clear, radius: 2)
+                        .shadow(color: isActive ? color.opacity(0.75) : Color.clear, radius: 3)
                 }
             }
+            .padding(2)
             .frame(height: max(16, size.height - 18))
-            .background(Color.black.opacity(0.4))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .background(Color.black.opacity(0.85))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color.white.opacity(0.40), lineWidth: 1.2)
             )
             .contentShape(Rectangle())
             .gesture(
@@ -58,23 +59,23 @@ struct VisualBarView: View {
             HStack {
                 Text("0")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.8))
                 Spacer()
                 Text("25%")
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("50%")
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("75%")
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("MAX")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.8))
             }
             .padding(.horizontal, 2)
         }
@@ -93,26 +94,26 @@ struct VisualBarView: View {
                     let color = segmentColor(forIndex: index, total: segmentCount, progress: engine.progress)
                     
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(isActive ? (engine.isFlashing ? Color.white : color) : Color.white.opacity(0.08))
+                        .fill(isActive ? (engine.isFlashing ? Color.white : color) : Color.white.opacity(0.16))
                         .overlay(
                             RoundedRectangle(cornerRadius: 2)
-                                .stroke(isActive ? Color.white.opacity(0.3) : Color.clear, lineWidth: 0.5)
+                                .stroke(isActive ? Color.white.opacity(0.4) : Color.black.opacity(0.6), lineWidth: 0.5)
                         )
-                        .shadow(color: isActive ? color.opacity(0.6) : Color.clear, radius: 2)
+                        .shadow(color: isActive ? color.opacity(0.75) : Color.clear, radius: 3)
                 }
             }
+            .padding(2)
             .frame(width: max(20, size.width - 28))
-            .background(Color.black.opacity(0.4))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .background(Color.black.opacity(0.85))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color.white.opacity(0.40), lineWidth: 1.2)
             )
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        // 上端がMAX (1.0), 下端が0 (0.0)
                         let ratio = max(0, min(1, 1.0 - (value.location.y / size.height)))
                         engine.setProgressRatio(ratio)
                     }
@@ -122,23 +123,23 @@ struct VisualBarView: View {
             VStack {
                 Text("MAX")
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.8))
                 Spacer()
                 Text("75%")
                     .font(.system(size: 7, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("50%")
                     .font(.system(size: 7, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("25%")
                     .font(.system(size: 7, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("0")
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.8))
             }
             .frame(width: 22)
         }
@@ -150,18 +151,17 @@ struct VisualBarView: View {
             return Color.white
         }
         
-        // カラーモード: 残り割合またはセグメント位置に基づくカラー
         let segmentRatio = Double(index) / Double(total)
         
         if segmentRatio < 0.20 {
             // 残りわずか (赤)
-            return Color(red: 0.95, green: 0.25, blue: 0.25)
+            return Color(red: 0.98, green: 0.22, blue: 0.22)
         } else if segmentRatio < 0.50 {
             // 中盤 (黄・オレンジ)
-            return Color(red: 0.96, green: 0.72, blue: 0.15)
+            return Color(red: 0.98, green: 0.76, blue: 0.12)
         } else {
-            // 充分 (エメラルドグリーン / シアン)
-            return Color(red: 0.20, green: 0.85, blue: 0.50)
+            // 充分 (エメラルドグリーン)
+            return Color(red: 0.18, green: 0.88, blue: 0.48)
         }
     }
 }
