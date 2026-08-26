@@ -1,8 +1,8 @@
 # VisualBarTimer ⏱️
 
 <p align="center">
-  <b>A sleek, Kingjim-style visual bar timer for macOS.</b><br>
-  キングジム「ビジュアルバータイマー」風のmacOSネイティブ・フローティングタイマー
+  <b>A sleek and intuitive visual LED bar timer for macOS.</b><br>
+  macOSネイティブの直感的なフローティングLEDバータイマー
 </p>
 
 <p align="center">
