@@ -12,9 +12,36 @@
   <a href="https://github.com/nanonigit/VisualBarTimer/releases/latest"><img src="https://img.shields.io/github/v/release/nanonigit/VisualBarTimer?style=flat-square" alt="Release"></a>
 </p>
 
+<p align="center">
+  <img src="docs/images/preview_color_medium.png" width="460" alt="VisualBarTimer Medium Preview">
+</p>
+
 ---
 
-[English](#english) | [日本語](#日本語)
+[English](#english) | [日本語](#日本語) | [Screenshots / 画面プレビュー](#screenshots)
+
+---
+
+<a name="screenshots"></a>
+## 📸 Screenshots / 画面プレビュー
+
+### 🎨 Color Theme (カラーモード: 残り時間で 緑 → 黄 → 赤 に変化)
+
+| Medium (中) | Mini / Extra Small (極小スリムバー) |
+| :---: | :---: |
+| <img src="docs/images/preview_color_medium.png" width="380" alt="Color Medium"> | <img src="docs/images/preview_color_mini.png" width="250" alt="Color Mini"> |
+
+| Small (小) | Large (大) | Vertical (縦向き) |
+| :---: | :---: | :---: |
+| <img src="docs/images/preview_color_small.png" width="300" alt="Color Small"> | <img src="docs/images/preview_color_large.png" width="420" alt="Color Large"> | <img src="docs/images/preview_color_vertical.png" height="260" alt="Color Vertical"> |
+
+---
+
+### ⚪ Monochrome Theme (白黒モード: 高コントラスト・ミニマルLED)
+
+| Medium (白黒・中) | Mini (白黒・極小) | Vertical (白黒・縦向き) |
+| :---: | :---: | :---: |
+| <img src="docs/images/preview_mono_medium.png" width="380" alt="Monochrome Medium"> | <img src="docs/images/preview_mono_mini.png" width="250" alt="Monochrome Mini"> | <img src="docs/images/preview_mono_vertical.png" height="260" alt="Monochrome Vertical"> |
 
 ---
 
@@ -32,6 +59,7 @@
 * **Floating & Always on Top**:
   * Pin button (📌) keeps the timer always on top of your workflow.
   * Move freely around your screen by dragging anywhere on the background.
+  * Automatically remembers window position and custom durations across restarts.
 * **4 Flexible Window Sizes**:
   * **Mini (極小)**: Slim, unobtrusive 68px bar perfect for desk corners.
   * **Small (小)**, **Medium (中)**, **Large (大)**.
@@ -80,6 +108,7 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
 * **フローティング & 最前面固定**:
   * 📌ピンボタンで常時最前面への固定/解除が可能
   * 背景や時計の周囲をドラッグしてデスクトップ上を自由に移動
+  * **位置と分数の自動記憶**: 最後に置いた位置や手入力した分数を再起動後も自動復元
 * **4段階のサイズプリセット**:
   * **極小 (Mini)**: デスクトップの隅に邪魔にならず置けるスリムバー（高さ約68px）
   * **小 (Small)**, **中 (Medium)**, **大 (Large)**
