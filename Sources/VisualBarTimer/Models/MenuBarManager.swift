@@ -43,15 +43,21 @@ final class MenuBarManager: NSObject {
         let isRunning = engine?.isRunning ?? false
         let iconName = isRunning ? "timer" : "stopwatch"
         
-        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "VisualBarTimer")
-        button.imagePosition = .imageLeading
-        
         switch settings.menuBarFormat {
         case .english:
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "VisualBarTimer")
+            button.imagePosition = .imageLeading
             button.title = " \(logManager.todayFormattedM)"
         case .japanese:
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "VisualBarTimer")
+            button.imagePosition = .imageLeading
             button.title = " \(logManager.todayFormattedMin)"
+        case .numberOnly:
+            button.image = nil
+            button.title = logManager.todayFormattedNumeric
         case .iconOnly:
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "VisualBarTimer")
+            button.imagePosition = .imageOnly
             button.title = ""
         }
         

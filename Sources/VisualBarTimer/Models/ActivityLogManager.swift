@@ -85,6 +85,17 @@ final class ActivityLogManager: ObservableObject {
         }
     }
     
+    var todayFormattedNumeric: String {
+        let total = Int(todayTotalSeconds)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        if hours > 0 {
+            return String(format: "%d:%02d", hours, minutes)
+        } else {
+            return "\(minutes)"
+        }
+    }
+    
     var todayFormattedDuration: String {
         return todayFormattedMin
     }

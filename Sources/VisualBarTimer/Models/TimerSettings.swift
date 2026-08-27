@@ -3,9 +3,10 @@ import Combine
 import AppKit
 
 enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
-    case english = "m 表示 (45m / 1h 12m)"
-    case japanese = "分 表示 (45分 / 1時間12分)"
-    case iconOnly = "表示しない (アイコンのみ)"
+    case english = "m 表示 (⏱️ 45m)"
+    case japanese = "分 表示 (⏱️ 45分)"
+    case numberOnly = "数字のみ (アイコンなし: 45)"
+    case iconOnly = "アイコンのみ (⏱️)"
     
     var id: String { rawValue }
 }
