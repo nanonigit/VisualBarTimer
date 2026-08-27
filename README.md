@@ -74,8 +74,9 @@
   * **Click / Drag on Bar**: Set time directly by clicking anywhere on the bar.
   * **Click Clock to Edit**: Tap the digital clock to type custom minutes with your keyboard.
   * **Quick Presets**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`.
-* **Daily Activity Tracking, Editing & Export**:
+* **Daily Activity Tracking, Editing, Export & Calendar Sync**:
   * Tracks total timer duration and session counts per day in real-time.
+  * **Direct Calendar Sync**: One-click sync of daily focus time to **Google Calendar & Apple Calendar** (via EventKit).
   * **Manual Duration Adjustments**: Easily fix total time if you forgot to pause the timer (`±15m`, etc.).
   * **Export to CSV / JSON** with one click.
   * Automatically saves logs to `~/Library/Application Support/VisualBarTimer/activity_logs.json` for seamless integration with Obsidian, Notion, Python scripts, Raycast, and Shortcuts.
@@ -135,8 +136,9 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
   * **バーを直接クリック/ドラッグ**: バー上の位置をクリックして直感的に時間をセット
   * **分数の直接手入力**: デジタル時計部分（`10:00`など）をクリックしてキーボードで好きな分数を即入力
   * **ワンクリックプリセット**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`
-* **日別稼働ログ・手動修正 ＆ 外部連携**:
+* **日別稼働ログ・手動修正・Google/Macカレンダー連携**:
   * 一日あたりの総タイマー稼働時間とセッション回数を自動でリアルタイム集計。
+  * **カレンダー直接同期**: 今日の総稼働時間（セッション内訳・分数）を **Googleカレンダー / Appleカレンダーにワンクリックで予定として書き込み**。
   * **手動時間修正**: 止め忘れ時に分数を手動入力または `±15分` などのボタンで簡単に微調整可能。
   * **CSV / JSON 形式でのワンクリック書き出し**・クリップボードコピーに対応。
   * ログは `~/Library/Application Support/VisualBarTimer/activity_logs.json` に標準JSONで自動保存されるため、Obsidian、Notion、Pythonスクリプト、Raycast、ショートカット等と容易に連携可能。
