@@ -48,13 +48,19 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1.6</string>
+    <string>1.2.0</string>
     <key>CFBundleVersion</key>
-    <string>17</string>
+    <string>18</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSCalendarsUsageDescription</key>
+    <string>タイマーの稼働時間をGoogle/Macカレンダーに記録するためにカレンダーアクセスを使用します。</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>タイマーの稼働時間をGoogle/Macカレンダーに記録するためにカレンダーアクセスを使用します。</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 </dict>

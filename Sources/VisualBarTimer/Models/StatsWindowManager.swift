@@ -21,7 +21,7 @@ final class StatsWindowManager {
         
         let hostingController = NSHostingController(rootView: contentView)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 570),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false

@@ -1,22 +1,24 @@
 import SwiftUI
 import AppKit
+import EventKit
 
 struct StatsWindowView: View {
     @ObservedObject var logManager = ActivityLogManager.shared
+    @ObservedObject var calendarSync = CalendarSyncManager.shared
     var onClose: (() -> Void)? = nil
     
     @State private var copiedMessage: String? = nil
     @State private var editingDateKey: String? = nil
-    @State private var editMinutesText: String = ""
+    @State private var syncStatusMessage: String? = nil
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             // ヘッダー
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("タイマー稼働ログ・統計")
                         .font(.system(size: 16, weight: .bold))
-                    Text("日々の集中・タイマー稼働時間を記録・修正・書き出し")
+                    Text("日々の集中・タイマー稼働時間を記録・修正・カレンダー連携")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -51,7 +53,7 @@ struct StatsWindowView: View {
                         .buttonStyle(.plain)
                     }
                     
-                    Text(logManager.todayFormattedDuration)
+                    Text(logManager.todayFormattedMin)
                         .font(.system(size: 24, weight: .heavy, design: .monospaced))
                         .foregroundColor(.green)
                 }
@@ -74,11 +76,51 @@ struct StatsWindowView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             
+            // カレンダー直接同期アクションバナー
+            HStack(spacing: 12) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 20))
+                    .foregroundColor(.blue)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Google / Macカレンダーに今日の総時間を記録")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Google同期されているカレンダーに予定として自動登録されます")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    syncTodayToCalendar()
+                }) {
+                    Label("カレンダーに書き込む", systemImage: "plus.circle.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.85))
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(10)
+            .background(Color.blue.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+            )
+            
             // 日別履歴リスト
             VStack(alignment: .leading, spacing: 8) {
-                Text("日別履歴 (日付ごとの修正も可能)")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text("日別履歴 (各日のカレンダー登録・修正)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
                 
                 ScrollView {
                     VStack(spacing: 6) {
@@ -111,13 +153,27 @@ struct StatsWindowView: View {
                                         .foregroundColor(.white)
                                         .frame(width: 80, alignment: .trailing)
                                     
+                                    // カレンダー追加ボタン
+                                    Button(action: {
+                                        syncDayToCalendar(day)
+                                    }) {
+                                        Image(systemName: "calendar.badge.plus")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.blue.opacity(0.9))
+                                            .padding(4)
+                                            .background(Color.blue.opacity(0.12))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("この日の稼働時間をカレンダーに登録")
+                                    
                                     // 修正ボタン
                                     Button(action: {
                                         openEditor(for: day.dateString)
                                     }) {
                                         Image(systemName: "pencil")
                                             .font(.system(size: 10))
-                                            .foregroundColor(.white.opacity(0.6))
+                                            .foregroundColor(.white.opacity(0.7))
                                             .padding(4)
                                             .background(Color.white.opacity(0.08))
                                             .clipShape(Circle())
@@ -133,14 +189,14 @@ struct StatsWindowView: View {
                         }
                     }
                 }
-                .frame(height: 140)
+                .frame(height: 120)
             }
             
             Divider()
             
             // エクスポート & 連携アクション
             VStack(alignment: .leading, spacing: 10) {
-                Text("エクスポート & 外部ソリューション連携")
+                Text("ファイル書き出し & 外部連携")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.secondary)
                 
@@ -200,15 +256,16 @@ struct StatsWindowView: View {
                     .buttonStyle(.plain)
                 }
                 
-                if let msg = copiedMessage {
+                if let msg = syncStatusMessage ?? copiedMessage {
                     Text(msg)
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.green)
+                        .transition(.opacity)
                 }
             }
         }
         .padding(20)
-        .frame(width: 500, height: 510)
+        .frame(width: 520, height: 560)
         .sheet(item: Binding<IdentifiableDate?>(
             get: { editingDateKey.map { IdentifiableDate(dateKey: $0) } },
             set: { editingDateKey = $0?.dateKey }
@@ -219,14 +276,26 @@ struct StatsWindowView: View {
         }
     }
     
+    private func syncTodayToCalendar() {
+        let key = logManager.todayKey
+        let dayLog = logManager.dailyLogs[key] ?? DayLog(dateString: key, totalSeconds: logManager.todayTotalSeconds, sessionCount: 1, sessions: [])
+        syncDayToCalendar(dayLog)
+    }
+    
+    private func syncDayToCalendar(_ dayLog: DayLog) {
+        calendarSync.syncDayLogToCalendar(dayLog: dayLog) { success, message in
+            showToast(message)
+        }
+    }
+    
     private func openEditor(for dateKey: String) {
         editingDateKey = dateKey
     }
     
     private func showToast(_ text: String) {
-        copiedMessage = text
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            copiedMessage = nil
+        syncStatusMessage = text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+            syncStatusMessage = nil
         }
     }
 }
