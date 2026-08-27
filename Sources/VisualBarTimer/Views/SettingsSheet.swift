@@ -168,8 +168,8 @@ struct SettingsSheet: View {
                     
                     // カレンダー自動同期
                     Toggle(isOn: Binding<Bool>(
-                        get: { CalendarSyncManager.shared.autoSyncEnabled },
-                        set: { CalendarSyncManager.shared.autoSyncEnabled = $0 }
+                        get: { calendarSync.autoSyncEnabled },
+                        set: { calendarSync.autoSyncEnabled = $0 }
                     )) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("日が変わった時に前日の稼働時間をカレンダーに自動記録")
@@ -180,13 +180,13 @@ struct SettingsSheet: View {
                         }
                     }
                     
-                    // 書き込み先カレンダーの選択
-                    if !CalendarSyncManager.shared.availableCalendars.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("書き込み先カレンダー")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            
+                    // 書き込み先カレンダーの選択 & 権限リクエスト
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("書き込み先カレンダー")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        
+                        if calendarSync.isAuthorized && !calendarSync.availableCalendars.isEmpty {
                             Picker("", selection: $calendarSync.selectedCalendarId) {
                                 ForEach(calendarSync.availableCalendars, id: \.id) { option in
                                     Text(option.displayName).tag(option.id)
@@ -194,10 +194,26 @@ struct SettingsSheet: View {
                             }
                             .labelsHidden()
                             .pickerStyle(.menu)
+                        } else {
+                            Button(action: {
+                                calendarSync.requestAccess()
+                            }) {
+                                HStack {
+                                    Image(systemName: "calendar.badge.plus")
+                                    Text("カレンダーへのアクセスを許可して一覧を読み込む")
+                                }
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .padding(.leading, 12)
-                        .padding(.vertical, 2)
                     }
+                    .padding(.leading, 12)
+                    .padding(.vertical, 4)
                     
                     Toggle(isOn: $settings.isAlwaysOnTop) {
                         Text("常に最前面に表示")
@@ -258,6 +274,9 @@ struct SettingsSheet: View {
             }
             .padding(24)
         }
-        .frame(width: 460, height: 560)
+        .frame(width: 460, height: 570)
+        .onAppear {
+            calendarSync.checkAuthorization()
+        }
     }
 }

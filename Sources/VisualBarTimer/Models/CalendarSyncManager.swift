@@ -86,7 +86,7 @@ final class CalendarSyncManager: ObservableObject {
         }
     }
     
-    func requestAccess(completion: @escaping (Bool) -> Void) {
+    func requestAccess(completion: ((Bool) -> Void)? = nil) {
         if #available(macOS 14.0, *) {
             eventStore.requestFullAccessToEvents { [weak self] granted, error in
                 Task { @MainActor in
@@ -97,7 +97,7 @@ final class CalendarSyncManager: ObservableObject {
                             self?.checkAndAutoSyncPreviousDays()
                         }
                     }
-                    completion(granted)
+                    completion?(granted)
                 }
             }
         } else {
@@ -110,7 +110,7 @@ final class CalendarSyncManager: ObservableObject {
                             self?.checkAndAutoSyncPreviousDays()
                         }
                     }
-                    completion(granted)
+                    completion?(granted)
                 }
             }
         }
