@@ -51,7 +51,7 @@ struct DigitalDisplay: View {
                     HStack(spacing: 3) {
                         Image(systemName: "chart.bar.fill")
                             .font(.system(size: 8))
-                        Text("今日: \(ActivityLogManager.shared.todayFormattedDuration)")
+                        Text("今日: \(ActivityLogManager.shared.todayFormattedM)")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                     }
                     .foregroundColor(.white.opacity(0.75))

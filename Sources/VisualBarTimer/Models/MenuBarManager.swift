@@ -37,17 +37,24 @@ final class MenuBarManager: NSObject {
     }
     
     func updateTitle() {
-        guard let button = statusItem?.button else { return }
+        guard let button = statusItem?.button, let settings = settings else { return }
         let logManager = ActivityLogManager.shared
-        let todayText = logManager.todayFormattedDuration
         
-        // 左右の余白を抑えたコンパクトな表示
         let isRunning = engine?.isRunning ?? false
         let iconName = isRunning ? "timer" : "stopwatch"
         
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "VisualBarTimer")
         button.imagePosition = .imageLeading
-        button.title = " \(todayText)"
+        
+        switch settings.menuBarFormat {
+        case .english:
+            button.title = " \(logManager.todayFormattedM)"
+        case .japanese:
+            button.title = " \(logManager.todayFormattedMin)"
+        case .iconOnly:
+            button.title = ""
+        }
+        
         button.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
     }
     

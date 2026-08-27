@@ -105,12 +105,29 @@ struct SettingsSheet: View {
                     
                     Toggle(isOn: $settings.showInMenuBar) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("メニューバーにアイコンと分数（⏱️ 45m）を表示")
+                            Text("メニューバーにアイコンを表示")
                                 .font(.system(size: 13))
                             Text("クリックでウィンドウの再表示やスタート/停止が可能")
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                         }
+                    }
+                    
+                    if settings.showInMenuBar {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("メニューバーの分数表示スタイル")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            Picker("", selection: $settings.menuBarFormat) {
+                                ForEach(MenuBarDisplayFormat.allCases) { fmt in
+                                    Text(fmt.rawValue).tag(fmt)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.radioGroup)
+                        }
+                        .padding(.leading, 12)
+                        .padding(.vertical, 2)
                     }
                     
                     Toggle(isOn: $settings.showInDock) {

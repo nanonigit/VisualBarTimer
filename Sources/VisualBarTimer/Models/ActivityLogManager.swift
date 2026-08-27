@@ -63,7 +63,7 @@ final class ActivityLogManager: ObservableObject {
         Self.dateFormatter.string(from: Date())
     }
     
-    var todayFormattedDuration: String {
+    var todayFormattedM: String {
         let total = Int(todayTotalSeconds)
         let hours = total / 3600
         let minutes = (total % 3600) / 60
@@ -72,6 +72,21 @@ final class ActivityLogManager: ObservableObject {
         } else {
             return "\(minutes)m"
         }
+    }
+    
+    var todayFormattedMin: String {
+        let total = Int(todayTotalSeconds)
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        if hours > 0 {
+            return "\(hours)時間\(minutes)分"
+        } else {
+            return "\(minutes)分"
+        }
+    }
+    
+    var todayFormattedDuration: String {
+        return todayFormattedMin
     }
     
     // タイマー開始時

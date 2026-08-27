@@ -2,6 +2,14 @@ import SwiftUI
 import Combine
 import AppKit
 
+enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
+    case english = "m 表示 (45m / 1h 12m)"
+    case japanese = "分 表示 (45分 / 1時間12分)"
+    case iconOnly = "表示しない (アイコンのみ)"
+    
+    var id: String { rawValue }
+}
+
 enum CloseAction: String, CaseIterable, Identifiable, Codable {
     case hideToMenuBar = "メニューバーに隠す (バックグラウンド常駐)"
     case quit = "アプリを完全に終了"
@@ -132,6 +140,14 @@ class TimerSettings: ObservableObject {
         }
     }
     
+    // メニューバーのテキスト表示スタイル
+    @Published var menuBarFormat: MenuBarDisplayFormat {
+        didSet {
+            UserDefaults.standard.set(menuBarFormat.rawValue, forKey: "saved_menubar_format")
+            MenuBarManager.shared.updateTitle()
+        }
+    }
+    
     init() {
         if let rawClose = UserDefaults.standard.string(forKey: "saved_close_action"),
            let action = CloseAction(rawValue: rawClose) {
@@ -150,6 +166,13 @@ class TimerSettings: ObservableObject {
             self.showInMenuBar = UserDefaults.standard.bool(forKey: "saved_show_in_menubar")
         } else {
             self.showInMenuBar = true
+        }
+        
+        if let rawFormat = UserDefaults.standard.string(forKey: "saved_menubar_format"),
+           let format = MenuBarDisplayFormat(rawValue: rawFormat) {
+            self.menuBarFormat = format
+        } else {
+            self.menuBarFormat = .english
         }
         
         if let rawOrient = UserDefaults.standard.string(forKey: "saved_orientation"),
