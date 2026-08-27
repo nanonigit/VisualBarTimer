@@ -165,6 +165,20 @@ struct SettingsSheet: View {
                         }
                     }
                     
+                    // カレンダー自動同期
+                    Toggle(isOn: Binding<Bool>(
+                        get: { CalendarSyncManager.shared.autoSyncEnabled },
+                        set: { CalendarSyncManager.shared.autoSyncEnabled = $0 }
+                    )) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("日が変わった時に前日の稼働時間をカレンダーに自動記録")
+                                .font(.system(size: 13))
+                            Text("日付変更時または翌朝起動時に、前日の総集中時間をGoogle/Macカレンダーへ自動登録します")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     Toggle(isOn: $settings.isAlwaysOnTop) {
                         Text("常に最前面に表示")
                             .font(.system(size: 13))

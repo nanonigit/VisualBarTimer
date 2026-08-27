@@ -10,13 +10,52 @@ final class CalendarSyncManager: ObservableObject {
     @Published var isAuthorized: Bool = false
     @Published var availableCalendars: [EKCalendar] = []
     @Published var selectedCalendarId: String = ""
+    @Published var autoSyncEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(autoSyncEnabled, forKey: "saved_auto_calendar_sync")
+            if autoSyncEnabled {
+                checkAndAutoSyncPreviousDays()
+            }
+        }
+    }
     @Published var lastSyncMessage: String? = nil
     
+    private var syncedDateKeys: Set<String> {
+        get {
+            let array = UserDefaults.standard.stringArray(forKey: "saved_synced_calendar_dates") ?? []
+            return Set(array)
+        }
+        set {
+            UserDefaults.standard.set(Array(newValue), forKey: "saved_synced_calendar_dates")
+        }
+    }
+    
     private init() {
+        if UserDefaults.standard.object(forKey: "saved_auto_calendar_sync") != nil {
+            self.autoSyncEnabled = UserDefaults.standard.bool(forKey: "saved_auto_calendar_sync")
+        } else {
+            self.autoSyncEnabled = true
+        }
+        
         if let savedId = UserDefaults.standard.string(forKey: "saved_calendar_id") {
             self.selectedCalendarId = savedId
         }
+        
         checkAuthorization()
+        setupDayChangeObserver()
+    }
+    
+    private func setupDayChangeObserver() {
+        // 日付が変わった瞬間に自動同期
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkAndAutoSyncPreviousDays()
+            }
+        }
     }
     
     func checkAuthorization() {
@@ -28,6 +67,9 @@ final class CalendarSyncManager: ObservableObject {
         }
         if self.isAuthorized {
             loadCalendars()
+            if autoSyncEnabled {
+                checkAndAutoSyncPreviousDays()
+            }
         }
     }
     
@@ -38,6 +80,9 @@ final class CalendarSyncManager: ObservableObject {
                     self?.isAuthorized = granted
                     if granted {
                         self?.loadCalendars()
+                        if self?.autoSyncEnabled == true {
+                            self?.checkAndAutoSyncPreviousDays()
+                        }
                     }
                     completion(granted)
                 }
@@ -48,6 +93,9 @@ final class CalendarSyncManager: ObservableObject {
                     self?.isAuthorized = granted
                     if granted {
                         self?.loadCalendars()
+                        if self?.autoSyncEnabled == true {
+                            self?.checkAndAutoSyncPreviousDays()
+                        }
                     }
                     completion(granted)
                 }
@@ -69,6 +117,26 @@ final class CalendarSyncManager: ObservableObject {
         UserDefaults.standard.set(id, forKey: "saved_calendar_id")
     }
     
+    // MARK: - 日付変更時の前日自動同期
+    func checkAndAutoSyncPreviousDays() {
+        guard autoSyncEnabled else { return }
+        let logManager = ActivityLogManager.shared
+        let todayKey = logManager.todayKey
+        var currentSynced = syncedDateKeys
+        
+        for (dateKey, dayLog) in logManager.dailyLogs {
+            // 今日以外の過去の日付で、未同期かつ1分以上稼働があるもの
+            if dateKey < todayKey && !currentSynced.contains(dateKey) && dayLog.totalSeconds >= 60 {
+                syncDayLogToCalendar(dayLog: dayLog) { [weak self] success, _ in
+                    if success {
+                        currentSynced.insert(dateKey)
+                        self?.syncedDateKeys = currentSynced
+                    }
+                }
+            }
+        }
+    }
+    
     /// 特定の日の総タイマー稼働時間をカレンダーにイベントとして追加
     func syncDayLogToCalendar(dayLog: DayLog, completion: ((Bool, String) -> Void)? = nil) {
         guard dayLog.totalSeconds >= 60 else {
@@ -80,7 +148,14 @@ final class CalendarSyncManager: ObservableObject {
         
         let proceed = { [weak self] in
             guard let self = self else { return }
-            self.createEvent(for: dayLog, completion: completion)
+            self.createEvent(for: dayLog) { success, msg in
+                if success {
+                    var set = self.syncedDateKeys
+                    set.insert(dayLog.dateString)
+                    self.syncedDateKeys = set
+                }
+                completion?(success, msg)
+            }
         }
         
         if !isAuthorized {
@@ -88,7 +163,7 @@ final class CalendarSyncManager: ObservableObject {
                 if granted {
                     proceed()
                 } else {
-                    let msg = "カレンダーへのアクセスが許可されていません（システム設定で許可してください）"
+                    let msg = "カレンダーアクセスが未許可です"
                     self.lastSyncMessage = msg
                     completion?(false, msg)
                 }
@@ -120,37 +195,40 @@ final class CalendarSyncManager: ObservableObject {
         let formattedTime = dayLog.formattedDuration
         event.title = "⏱️ タイマー集中作業 (\(formattedTime))"
         
-        // 日付のパース
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: dayLog.dateString) else {
-            let msg = "日付の形式が不正です"
+            let msg = "日付形式が不正です"
             lastSyncMessage = msg
             completion?(false, msg)
             return
         }
         
-        // 今日の場合は現在時刻を終了時刻、または日中の時間帯に設定
         let calendarCalc = Calendar.current
-        let now = Date()
         let isToday = calendarCalc.isDateInToday(date)
-        
         let duration = dayLog.totalSeconds
+        
         if isToday {
+            let now = Date()
             event.endDate = now
             event.startDate = now.addingTimeInterval(-duration)
         } else {
-            // 過去の日の場合はその日の 10:00 開始とする
-            let start = calendarCalc.date(bySettingHour: 10, minute: 0, second: 0, of: date) ?? date
-            event.startDate = start
-            event.endDate = start.addingTimeInterval(duration)
+            // 前日の場合は最初のセッション開始時刻、または前日10:00を開始とする
+            if let firstSession = dayLog.sessions.first {
+                event.startDate = firstSession.startTime
+                event.endDate = firstSession.startTime.addingTimeInterval(duration)
+            } else {
+                let start = calendarCalc.date(bySettingHour: 10, minute: 0, second: 0, of: date) ?? date
+                event.startDate = start
+                event.endDate = start.addingTimeInterval(duration)
+            }
         }
         
-        var notes = "【VisualBarTimer 稼働記録】\n"
+        var notes = "【VisualBarTimer 稼働実績】\n"
         notes += "・総タイマー時間: \(formattedTime)\n"
         notes += "・セッション回数: \(dayLog.sessionCount)回\n"
         if !dayLog.sessions.isEmpty {
-            notes += "\n【詳細セッション】\n"
+            notes += "\n【セッション内訳】\n"
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "HH:mm"
             for (i, session) in dayLog.sessions.enumerated() {
@@ -164,7 +242,7 @@ final class CalendarSyncManager: ObservableObject {
         
         do {
             try eventStore.save(event, span: .thisEvent)
-            let msg = "カレンダー「\(calendar.title)」に『\(event.title ?? "")』を登録しました！"
+            let msg = "カレンダーに『\(event.title ?? "")』を自動登録しました！"
             self.lastSyncMessage = msg
             completion?(true, msg)
         } catch {
