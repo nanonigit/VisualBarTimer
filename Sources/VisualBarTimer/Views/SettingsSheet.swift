@@ -140,6 +140,20 @@ struct SettingsSheet: View {
                         }
                     }
                     
+                    // ログイン時自動起動
+                    Toggle(isOn: Binding<Bool>(
+                        get: { LaunchAtLoginManager.shared.isEnabled },
+                        set: { LaunchAtLoginManager.shared.setEnabled($0) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Macログイン時に自動起動")
+                                .font(.system(size: 13))
+                            Text("Macの起動・ログインと同時にタイマーを起動します")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     Toggle(isOn: $settings.isAlwaysOnTop) {
                         Text("常に最前面に表示")
                             .font(.system(size: 13))
