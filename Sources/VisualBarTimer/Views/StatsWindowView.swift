@@ -77,33 +77,53 @@ struct StatsWindowView: View {
             }
             
             // カレンダー直接同期アクションバナー
-            HStack(spacing: 12) {
-                Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 20))
+                        .foregroundColor(.blue)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Google / Macカレンダーに今日の総時間を記録")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Google同期されているカレンダーに予定として自動登録されます")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        syncTodayToCalendar()
+                    }) {
+                        Label("カレンダーに書き込む", systemImage: "plus.circle.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.85))
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Google / Macカレンダーに今日の総時間を記録")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("Google同期されているカレンダーに予定として自動登録されます")
+                if !calendarSync.availableCalendars.isEmpty {
+                    HStack(spacing: 6) {
+                        Text("保存先:")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: $calendarSync.selectedCalendarId) {
+                            ForEach(calendarSync.availableCalendars, id: \.id) { opt in
+                                Text(opt.displayName).tag(opt.id)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 2)
                 }
-                
-                Spacer()
-                
-                Button(action: {
-                    syncTodayToCalendar()
-                }) {
-                    Label("カレンダーに書き込む", systemImage: "plus.circle.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.blue.opacity(0.85))
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                .buttonStyle(.plain)
             }
             .padding(10)
             .background(Color.blue.opacity(0.12))

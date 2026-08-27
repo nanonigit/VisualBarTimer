@@ -2,14 +2,28 @@ import Foundation
 import EventKit
 import AppKit
 
+struct CalendarOption: Identifiable, Hashable {
+    var id: String { calendar.calendarIdentifier }
+    let calendar: EKCalendar
+    
+    var displayName: String {
+        let sourceTitle = calendar.source.title
+        return "\(calendar.title) (\(sourceTitle))"
+    }
+}
+
 @MainActor
 final class CalendarSyncManager: ObservableObject {
     static let shared = CalendarSyncManager()
     
     private let eventStore = EKEventStore()
     @Published var isAuthorized: Bool = false
-    @Published var availableCalendars: [EKCalendar] = []
-    @Published var selectedCalendarId: String = ""
+    @Published var availableCalendars: [CalendarOption] = []
+    @Published var selectedCalendarId: String = "" {
+        didSet {
+            UserDefaults.standard.set(selectedCalendarId, forKey: "saved_calendar_id")
+        }
+    }
     @Published var autoSyncEnabled: Bool {
         didSet {
             UserDefaults.standard.set(autoSyncEnabled, forKey: "saved_auto_calendar_sync")
@@ -46,7 +60,6 @@ final class CalendarSyncManager: ObservableObject {
     }
     
     private func setupDayChangeObserver() {
-        // 日付が変わった瞬間に自動同期
         NotificationCenter.default.addObserver(
             forName: .NSCalendarDayChanged,
             object: nil,
@@ -104,17 +117,27 @@ final class CalendarSyncManager: ObservableObject {
     }
     
     func loadCalendars() {
-        let calendars = eventStore.calendars(for: .event)
-        self.availableCalendars = calendars
-        if selectedCalendarId.isEmpty, let first = calendars.first {
-            selectedCalendarId = first.calendarIdentifier
-            UserDefaults.standard.set(selectedCalendarId, forKey: "saved_calendar_id")
+        let rawCalendars = eventStore.calendars(for: .event).filter { $0.allowsContentModifications }
+        self.availableCalendars = rawCalendars.map { CalendarOption(calendar: $0) }
+        
+        if selectedCalendarId.isEmpty || !availableCalendars.contains(where: { $0.id == selectedCalendarId }) {
+            if let defaultCal = eventStore.defaultCalendarForNewEvents {
+                selectedCalendarId = defaultCal.calendarIdentifier
+            } else if let first = availableCalendars.first {
+                selectedCalendarId = first.id
+            }
         }
     }
     
     func selectCalendar(id: String) {
         selectedCalendarId = id
-        UserDefaults.standard.set(id, forKey: "saved_calendar_id")
+    }
+    
+    var selectedCalendarName: String {
+        if let found = availableCalendars.first(where: { $0.id == selectedCalendarId }) {
+            return found.displayName
+        }
+        return "デフォルトカレンダー"
     }
     
     // MARK: - 日付変更時の前日自動同期
@@ -125,7 +148,6 @@ final class CalendarSyncManager: ObservableObject {
         var currentSynced = syncedDateKeys
         
         for (dateKey, dayLog) in logManager.dailyLogs {
-            // 今日以外の過去の日付で、未同期かつ1分以上稼働があるもの
             if dateKey < todayKey && !currentSynced.contains(dateKey) && dayLog.totalSeconds >= 60 {
                 syncDayLogToCalendar(dayLog: dayLog) { [weak self] success, _ in
                     if success {
@@ -176,8 +198,8 @@ final class CalendarSyncManager: ObservableObject {
     private func createEvent(for dayLog: DayLog, completion: ((Bool, String) -> Void)? = nil) {
         let targetCalendar: EKCalendar?
         if !selectedCalendarId.isEmpty,
-           let found = availableCalendars.first(where: { $0.calendarIdentifier == selectedCalendarId }) {
-            targetCalendar = found
+           let found = availableCalendars.first(where: { $0.id == selectedCalendarId }) {
+            targetCalendar = found.calendar
         } else {
             targetCalendar = eventStore.defaultCalendarForNewEvents
         }
@@ -213,7 +235,6 @@ final class CalendarSyncManager: ObservableObject {
             event.endDate = now
             event.startDate = now.addingTimeInterval(-duration)
         } else {
-            // 前日の場合は最初のセッション開始時刻、または前日10:00を開始とする
             if let firstSession = dayLog.sessions.first {
                 event.startDate = firstSession.startTime
                 event.endDate = firstSession.startTime.addingTimeInterval(duration)
@@ -242,7 +263,7 @@ final class CalendarSyncManager: ObservableObject {
         
         do {
             try eventStore.save(event, span: .thisEvent)
-            let msg = "カレンダーに『\(event.title ?? "")』を自動登録しました！"
+            let msg = "カレンダー「\(calendar.title)」に『\(event.title ?? "")』を登録しました！"
             self.lastSyncMessage = msg
             completion?(true, msg)
         } catch {

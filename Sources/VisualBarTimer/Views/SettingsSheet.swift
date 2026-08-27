@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsSheet: View {
     @ObservedObject var engine: TimerEngine
     @ObservedObject var settings: TimerSettings
+    @ObservedObject var calendarSync = CalendarSyncManager.shared
     var onClose: (() -> Void)? = nil
     
     var body: some View {
@@ -177,6 +178,25 @@ struct SettingsSheet: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                         }
+                    }
+                    
+                    // 書き込み先カレンダーの選択
+                    if !CalendarSyncManager.shared.availableCalendars.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("書き込み先カレンダー")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            
+                            Picker("", selection: $calendarSync.selectedCalendarId) {
+                                ForEach(calendarSync.availableCalendars, id: \.id) { option in
+                                    Text(option.displayName).tag(option.id)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                        }
+                        .padding(.leading, 12)
+                        .padding(.vertical, 2)
                     }
                     
                     Toggle(isOn: $settings.isAlwaysOnTop) {
