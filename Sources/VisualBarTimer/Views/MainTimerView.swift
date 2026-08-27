@@ -342,6 +342,10 @@ struct MainTimerView: View {
             let newFrame = NSRect(x: targetX, y: targetY, width: dims.width, height: dims.height)
             window.setFrame(newFrame, display: true, animate: false)
             
+            if settings.startHidden && settings.showInMenuBar {
+                window.orderOut(nil)
+            }
+            
             NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { notif in
                 if let win = notif.object as? NSWindow, win.title != "タイマー設定" && win.title != "タイマー稼働統計・ログエクスポート" {
                     UserDefaults.standard.set(Double(win.frame.origin.x), forKey: "saved_window_x")

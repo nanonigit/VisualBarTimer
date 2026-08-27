@@ -154,6 +154,17 @@ struct SettingsSheet: View {
                         }
                     }
                     
+                    // 起動時にウィンドウを隠す
+                    Toggle(isOn: $settings.startHidden) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("起動時にウィンドウを隠す（メニューバーのみで起動）")
+                                .font(.system(size: 13))
+                            Text("起動時に画面を邪魔せず、メニューバー常駐として静かに起動します")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     Toggle(isOn: $settings.isAlwaysOnTop) {
                         Text("常に最前面に表示")
                             .font(.system(size: 13))

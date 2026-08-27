@@ -125,6 +125,11 @@ class TimerSettings: ObservableObject {
         didSet { UserDefaults.standard.set(closeAction.rawValue, forKey: "saved_close_action") }
     }
     
+    // 起動時にウィンドウを隠す (メニューバー常駐起動)
+    @Published var startHidden: Bool {
+        didSet { UserDefaults.standard.set(startHidden, forKey: "saved_start_hidden") }
+    }
+    
     // Dock表示
     @Published var showInDock: Bool {
         didSet {
@@ -155,6 +160,12 @@ class TimerSettings: ObservableObject {
             self.closeAction = action
         } else {
             self.closeAction = .hideToMenuBar
+        }
+        
+        if UserDefaults.standard.object(forKey: "saved_start_hidden") != nil {
+            self.startHidden = UserDefaults.standard.bool(forKey: "saved_start_hidden")
+        } else {
+            self.startHidden = false
         }
         
         if UserDefaults.standard.object(forKey: "saved_show_in_dock") != nil {
