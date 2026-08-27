@@ -11,6 +11,26 @@ final class MenuBarManager: NSObject {
     
     override private init() {
         super.init()
+        
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateTitle()
+            }
+        }
+        
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateTitle()
+            }
+        }
     }
     
     func setup(engine: TimerEngine, settings: TimerSettings) {

@@ -79,8 +79,31 @@ final class CalendarSyncManager: ObservableObject {
     }
     
     private func setupDayChangeObserver() {
+        // 1. システムの日付変更通知
         NotificationCenter.default.addObserver(
             forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkAndAutoSyncPreviousDays()
+            }
+        }
+        
+        // 2. Macのスリープ復帰時にも未同期の前日データをチェック
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkAndAutoSyncPreviousDays()
+            }
+        }
+        
+        // 3. アプリが前面に復帰した時
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -162,17 +185,31 @@ final class CalendarSyncManager: ObservableObject {
     // MARK: - 日付変更時の前日自動同期
     func checkAndAutoSyncPreviousDays() {
         guard autoSyncEnabled else { return }
-        let logManager = ActivityLogManager.shared
-        let todayKey = logManager.todayKey
-        var currentSynced = syncedDateKeys
         
-        for (dateKey, dayLog) in logManager.dailyLogs {
-            if dateKey < todayKey && !currentSynced.contains(dateKey) && dayLog.totalSeconds >= 60 {
-                syncDayLogToCalendar(dayLog: dayLog) { [weak self] success, _ in
-                    if success {
-                        currentSynced.insert(dateKey)
-                        self?.syncedDateKeys = currentSynced
+        let executeSync = { [weak self] in
+            guard let self = self else { return }
+            let logManager = ActivityLogManager.shared
+            let todayKey = logManager.todayKey
+            var currentSynced = self.syncedDateKeys
+            
+            for (dateKey, dayLog) in logManager.dailyLogs {
+                if dateKey < todayKey && !currentSynced.contains(dateKey) && dayLog.totalSeconds >= 60 {
+                    self.syncDayLogToCalendar(dayLog: dayLog) { [weak self] success, _ in
+                        if success {
+                            currentSynced.insert(dateKey)
+                            self?.syncedDateKeys = currentSynced
+                        }
                     }
+                }
+            }
+        }
+        
+        if isAuthorized {
+            executeSync()
+        } else {
+            requestAccess { granted in
+                if granted {
+                    executeSync()
                 }
             }
         }

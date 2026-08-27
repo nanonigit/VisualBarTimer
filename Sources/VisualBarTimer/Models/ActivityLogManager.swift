@@ -36,8 +36,9 @@ final class ActivityLogManager: ObservableObject {
     @Published var dailyLogs: [String: DayLog] = [:] // key: "yyyy-MM-dd"
     @Published var todayTotalSeconds: TimeInterval = 0
     
+    private var lastObservedDateKey: String = ""
     private var sessionStartTime: Date?
-    private var activeAccumulatedDelta: TimeInterval = 0
+    private var heartbeatTimer: Timer?
     private let fileManager = FileManager.default
     
     private var storageURL: URL {
@@ -57,7 +58,9 @@ final class ActivityLogManager: ObservableObject {
     
     private init() {
         loadLogs()
+        self.lastObservedDateKey = todayKey
         updateTodayTotal()
+        setupMidnightAndWakeObservers()
     }
     
     var todayKey: String {
@@ -101,8 +104,65 @@ final class ActivityLogManager: ObservableObject {
         return todayFormattedMin
     }
     
+    // MARK: - 日付変更（深夜0時）＆スリープ復帰検知
+    private func setupMidnightAndWakeObservers() {
+        // 1. システムの日付変更通知
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleDayRollover()
+            }
+        }
+        
+        // 2. Macのスリープ復帰通知
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleDayRollover()
+            }
+        }
+        
+        // 3. アプリが前面・アクティブになった時
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleDayRollover()
+            }
+        }
+        
+        // 4. 定期ハートビート（スリープ明けや通知を取りこぼした場合の保険として30秒毎にチェック）
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkIfDayChanged()
+            }
+        }
+    }
+    
+    func checkIfDayChanged() {
+        if todayKey != lastObservedDateKey {
+            handleDayRollover()
+        }
+    }
+    
+    private func handleDayRollover() {
+        lastObservedDateKey = todayKey
+        updateTodayTotal()
+        MenuBarManager.shared.updateTitle()
+        CalendarSyncManager.shared.checkAndAutoSyncPreviousDays()
+    }
+    
     // タイマー開始時
     func onTimerStarted() {
+        checkIfDayChanged()
         sessionStartTime = Date()
     }
     
@@ -122,6 +182,7 @@ final class ActivityLogManager: ObservableObject {
     
     // 進行中の加算（1秒ごとなど）
     func addRunningTime(seconds: TimeInterval) {
+        checkIfDayChanged()
         todayTotalSeconds += seconds
         let key = todayKey
         var day = dailyLogs[key] ?? DayLog(dateString: key, totalSeconds: 0, sessionCount: 0, sessions: [])
@@ -132,6 +193,7 @@ final class ActivityLogManager: ObservableObject {
     }
     
     private func recordSession(_ session: SessionLog) {
+        checkIfDayChanged()
         let key = todayKey
         var day = dailyLogs[key] ?? DayLog(dateString: key, totalSeconds: 0, sessionCount: 0, sessions: [])
         day.sessions.append(session)
