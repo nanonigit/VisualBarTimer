@@ -194,6 +194,22 @@ struct SettingsSheet: View {
                             }
                             .labelsHidden()
                             .pickerStyle(.menu)
+                            
+                            // 登録スタイル
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("カレンダー記録スタイル")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                
+                                Picker("", selection: $calendarSync.syncStyle) {
+                                    ForEach(CalendarSyncStyle.allCases) { style in
+                                        Text(style.rawValue).tag(style)
+                                    }
+                                }
+                                .labelsHidden()
+                                .pickerStyle(.radioGroup)
+                            }
+                            .padding(.top, 4)
                         } else {
                             Button(action: {
                                 calendarSync.requestAccess()

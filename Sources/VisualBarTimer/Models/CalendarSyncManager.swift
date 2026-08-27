@@ -2,6 +2,13 @@ import Foundation
 import EventKit
 import AppKit
 
+enum CalendarSyncStyle: String, CaseIterable, Identifiable, Codable {
+    case actualTimeSlots = "実際に動いていた時間帯にそれぞれ記録 (タイムログ)"
+    case allDaySummary = "その日の終日予定として1つにまとめて記録"
+    
+    var id: String { rawValue }
+}
+
 struct CalendarOption: Identifiable, Hashable {
     var id: String { calendar.calendarIdentifier }
     let calendar: EKCalendar
@@ -32,6 +39,11 @@ final class CalendarSyncManager: ObservableObject {
             }
         }
     }
+    @Published var syncStyle: CalendarSyncStyle {
+        didSet {
+            UserDefaults.standard.set(syncStyle.rawValue, forKey: "saved_calendar_sync_style")
+        }
+    }
     @Published var lastSyncMessage: String? = nil
     
     private var syncedDateKeys: Set<String> {
@@ -49,6 +61,13 @@ final class CalendarSyncManager: ObservableObject {
             self.autoSyncEnabled = UserDefaults.standard.bool(forKey: "saved_auto_calendar_sync")
         } else {
             self.autoSyncEnabled = true
+        }
+        
+        if let rawStyle = UserDefaults.standard.string(forKey: "saved_calendar_sync_style"),
+           let style = CalendarSyncStyle(rawValue: rawStyle) {
+            self.syncStyle = style
+        } else {
+            self.syncStyle = .actualTimeSlots
         }
         
         if let savedId = UserDefaults.standard.string(forKey: "saved_calendar_id") {
@@ -170,7 +189,7 @@ final class CalendarSyncManager: ObservableObject {
         
         let proceed = { [weak self] in
             guard let self = self else { return }
-            self.createEvent(for: dayLog) { success, msg in
+            self.createEvents(for: dayLog) { success, msg in
                 if success {
                     var set = self.syncedDateKeys
                     set.insert(dayLog.dateString)
@@ -195,7 +214,7 @@ final class CalendarSyncManager: ObservableObject {
         }
     }
     
-    private func createEvent(for dayLog: DayLog, completion: ((Bool, String) -> Void)? = nil) {
+    private func createEvents(for dayLog: DayLog, completion: ((Bool, String) -> Void)? = nil) {
         let targetCalendar: EKCalendar?
         if !selectedCalendarId.isEmpty,
            let found = availableCalendars.first(where: { $0.id == selectedCalendarId }) {
@@ -211,12 +230,6 @@ final class CalendarSyncManager: ObservableObject {
             return
         }
         
-        let event = EKEvent(eventStore: eventStore)
-        event.calendar = calendar
-        
-        let formattedTime = dayLog.formattedDuration
-        event.title = "⏱️ タイマー集中作業 (\(formattedTime))"
-        
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: dayLog.dateString) else {
@@ -226,27 +239,65 @@ final class CalendarSyncManager: ObservableObject {
             return
         }
         
-        let calendarCalc = Calendar.current
-        let isToday = calendarCalc.isDateInToday(date)
-        let duration = dayLog.totalSeconds
-        
-        if isToday {
-            let now = Date()
-            event.endDate = now
-            event.startDate = now.addingTimeInterval(-duration)
-        } else {
-            if let firstSession = dayLog.sessions.first {
-                event.startDate = firstSession.startTime
-                event.endDate = firstSession.startTime.addingTimeInterval(duration)
+        do {
+            if syncStyle == .allDaySummary {
+                // 終日サマリー形式
+                let event = EKEvent(eventStore: eventStore)
+                event.calendar = calendar
+                let formattedTime = dayLog.formattedDuration
+                event.title = "⏱️ タイマー集中作業: \(formattedTime)"
+                
+                let calendarCalc = Calendar.current
+                let startOfDay = calendarCalc.startOfDay(for: date)
+                event.isAllDay = true
+                event.startDate = startOfDay
+                event.endDate = startOfDay
+                event.notes = buildNotes(dayLog: dayLog)
+                
+                try eventStore.save(event, span: .thisEvent)
+                let msg = "カレンダー「\(calendar.title)」の終日欄に登録しました！"
+                self.lastSyncMessage = msg
+                completion?(true, msg)
             } else {
-                let start = calendarCalc.date(bySettingHour: 10, minute: 0, second: 0, of: date) ?? date
-                event.startDate = start
-                event.endDate = start.addingTimeInterval(duration)
+                // 実際に動いていた時間帯にそれぞれ記録 (タイムログ)
+                if dayLog.sessions.isEmpty {
+                    // セッション詳細がない場合はその日の日中に1つのイベントとして作成
+                    let event = EKEvent(eventStore: eventStore)
+                    event.calendar = calendar
+                    event.title = "⏱️ タイマー集中作業 (\(dayLog.formattedDuration))"
+                    let calendarCalc = Calendar.current
+                    let start = calendarCalc.date(bySettingHour: 10, minute: 0, second: 0, of: date) ?? date
+                    event.startDate = start
+                    event.endDate = start.addingTimeInterval(dayLog.totalSeconds)
+                    event.notes = buildNotes(dayLog: dayLog)
+                    try eventStore.save(event, span: .thisEvent)
+                } else {
+                    for session in dayLog.sessions {
+                        let event = EKEvent(eventStore: eventStore)
+                        event.calendar = calendar
+                        let mins = max(1, Int(round(session.durationSeconds / 60.0)))
+                        event.title = "⏱️ タイマー集中 (\(mins)分)"
+                        event.startDate = session.startTime
+                        event.endDate = session.endTime
+                        event.notes = "VisualBarTimer 集中セッション\n・モード: \(session.mode)\n・稼働時間: \(mins)分"
+                        try eventStore.save(event, span: .thisEvent)
+                    }
+                }
+                
+                let msg = "カレンダー「\(calendar.title)」に実際の稼働時間帯（\(dayLog.sessions.count)件）を登録しました！"
+                self.lastSyncMessage = msg
+                completion?(true, msg)
             }
+        } catch {
+            let msg = "カレンダー保存エラー: \(error.localizedDescription)"
+            self.lastSyncMessage = msg
+            completion?(false, msg)
         }
-        
+    }
+    
+    private func buildNotes(dayLog: DayLog) -> String {
         var notes = "【VisualBarTimer 稼働実績】\n"
-        notes += "・総タイマー時間: \(formattedTime)\n"
+        notes += "・総タイマー時間: \(dayLog.formattedDuration)\n"
         notes += "・セッション回数: \(dayLog.sessionCount)回\n"
         if !dayLog.sessions.isEmpty {
             notes += "\n【セッション内訳】\n"
@@ -259,17 +310,6 @@ final class CalendarSyncManager: ObservableObject {
                 notes += "\(i + 1). \(sStart)〜\(sEnd) (\(mins)分 - \(session.mode))\n"
             }
         }
-        event.notes = notes
-        
-        do {
-            try eventStore.save(event, span: .thisEvent)
-            let msg = "カレンダー「\(calendar.title)」に『\(event.title ?? "")』を登録しました！"
-            self.lastSyncMessage = msg
-            completion?(true, msg)
-        } catch {
-            let msg = "カレンダー保存エラー: \(error.localizedDescription)"
-            self.lastSyncMessage = msg
-            completion?(false, msg)
-        }
+        return notes
     }
 }
