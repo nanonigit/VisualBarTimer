@@ -7,7 +7,7 @@ struct SettingsSheet: View {
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 // タイトル
                 HStack {
                     Text("タイマー設定")
@@ -82,17 +82,66 @@ struct SettingsSheet: View {
                 
                 Divider()
                 
-                // トグル設定群
-                VStack(spacing: 12) {
+                // ウィンドウ & メニューバー・Dock設定
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ウィンドウ・Dock・メニューバー")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    
+                    // ✕ボタンの動作
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("左上「✕」ボタンを押したときの動作")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        Picker("", selection: $settings.closeAction) {
+                            ForEach(CloseAction.allCases) { action in
+                                Text(action.rawValue).tag(action)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.radioGroup)
+                    }
+                    .padding(.bottom, 4)
+                    
+                    Toggle(isOn: $settings.showInMenuBar) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("メニューバーにアイコンと分数（⏱️ 45m）を表示")
+                                .font(.system(size: 13))
+                            Text("クリックでウィンドウの再表示やスタート/停止が可能")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Toggle(isOn: $settings.showInDock) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Dockにアプリアイコンを表示")
+                                .font(.system(size: 13))
+                            Text("OFFにするとメニューバー常駐専用アプリになります")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     Toggle(isOn: $settings.isAlwaysOnTop) {
                         Text("常に最前面に表示")
                             .font(.system(size: 13))
                     }
                     .onChange(of: settings.isAlwaysOnTop) { isOn in
-                        if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) {
+                        if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
                             window.level = isOn ? .floating : .normal
                         }
                     }
+                }
+                .toggleStyle(.switch)
+                
+                Divider()
+                
+                // サウンド・通知
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("通知 & アラーム")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
                     
                     Toggle(isOn: $settings.isSoundEnabled) {
                         Text("アラームサウンドを鳴らす")
@@ -135,6 +184,6 @@ struct SettingsSheet: View {
             }
             .padding(24)
         }
-        .frame(width: 440, height: 490)
+        .frame(width: 460, height: 560)
     }
 }

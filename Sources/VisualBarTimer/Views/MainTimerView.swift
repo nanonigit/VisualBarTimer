@@ -4,9 +4,10 @@ struct MainTimerView: View {
     @StateObject private var engine = TimerEngine()
     @StateObject private var settings = TimerSettings()
     @State private var showSettings = false
+    @State private var isHovering = false
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             // 背景ドラッグ移動
             WindowDraggableView()
             
@@ -24,6 +25,24 @@ struct MainTimerView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            
+            // 左上: クローズ (✕) ボタン (ホバーまたはクリック可能)
+            Button(action: {
+                handleCloseButton()
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Color.red.opacity(0.85))
+                        .frame(width: 12, height: 12)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundColor(.black.opacity(0.7))
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 6)
+            .padding(.leading, 6)
+            .help(settings.closeAction == .quit ? "アプリを終了" : "メニューバーに最小化")
         }
         .background(
             ZStack {
@@ -39,6 +58,7 @@ struct MainTimerView: View {
         .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
         .onAppear {
             setupInitialWindow()
+            MenuBarManager.shared.setup(engine: engine, settings: settings)
         }
         .onChange(of: settings.size) { _ in
             updateWindowFrame()
@@ -48,11 +68,28 @@ struct MainTimerView: View {
         }
     }
     
+    private func handleCloseButton() {
+        if settings.closeAction == .quit {
+            NSApp.terminate(nil)
+        } else {
+            // メニューバーに隠す
+            if !settings.showInMenuBar {
+                settings.showInMenuBar = true
+            }
+            MenuBarManager.shared.updateTitle()
+            if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
+                window.orderOut(nil)
+            }
+        }
+    }
+    
     // MARK: - 極小モード (Mini) 横向きスリムバー
     private var miniHorizontalContent: some View {
         VStack(spacing: 6) {
-            // 上段: 時計 + 操作アイコン
             HStack(spacing: 8) {
+                // ✕ボタン分の余白
+                Spacer().frame(width: 6)
+                
                 DigitalDisplay(engine: engine, settings: settings)
                 
                 Spacer()
@@ -60,6 +97,7 @@ struct MainTimerView: View {
                 // 再生 / 停止
                 Button(action: {
                     engine.toggle()
+                    MenuBarManager.shared.updateTitle()
                 }) {
                     Image(systemName: engine.isRunning ? "pause.fill" : "play.fill")
                         .font(.system(size: 11, weight: .bold))
@@ -75,6 +113,7 @@ struct MainTimerView: View {
                 // リセット
                 Button(action: {
                     engine.reset()
+                    MenuBarManager.shared.updateTitle()
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 10))
@@ -114,6 +153,9 @@ struct MainTimerView: View {
         return VStack(alignment: .leading, spacing: 10) {
             // 上段: デジタル時計 + ドラッグインジケータ
             HStack(alignment: .center) {
+                // ✕ボタン分の余白
+                Spacer().frame(width: 8)
+                
                 DigitalDisplay(engine: engine, settings: settings)
                 Spacer()
                 Image(systemName: "line.3.horizontal")
@@ -136,7 +178,11 @@ struct MainTimerView: View {
         let dims = settings.size.windowDimensions(orientation: .vertical)
         
         return VStack(spacing: 8) {
-            // 上段: デジタル時計
+            // 上段: ✕ボタン＋デジタル時計
+            HStack {
+                Spacer().frame(width: 6)
+                Spacer()
+            }
             DigitalDisplay(engine: engine, settings: settings)
             
             // 中段: 縦向きLEDバー
@@ -153,9 +199,9 @@ struct MainTimerView: View {
     private var verticalControls: some View {
         VStack(spacing: 6) {
             HStack(spacing: 4) {
-                // 再生 / 停止
                 Button(action: {
                     engine.toggle()
+                    MenuBarManager.shared.updateTitle()
                 }) {
                     Image(systemName: engine.isRunning ? "pause.fill" : "play.fill")
                         .font(.system(size: 11, weight: .bold))
@@ -168,9 +214,9 @@ struct MainTimerView: View {
                 .buttonStyle(.plain)
                 .keyboardShortcut(.space, modifiers: [])
                 
-                // リセット
                 Button(action: {
                     engine.reset()
+                    MenuBarManager.shared.updateTitle()
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 11))
@@ -185,10 +231,9 @@ struct MainTimerView: View {
             }
             
             HStack(spacing: 4) {
-                // 最前面ピン
                 Button(action: {
                     settings.isAlwaysOnTop.toggle()
-                    if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) {
+                    if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
                         window.level = settings.isAlwaysOnTop ? .floating : .normal
                     }
                 }) {
@@ -202,7 +247,6 @@ struct MainTimerView: View {
                 }
                 .buttonStyle(.plain)
                 
-                // 向き切り替え
                 Button(action: {
                     withAnimation {
                         settings.orientation = .horizontal
@@ -218,7 +262,6 @@ struct MainTimerView: View {
                 }
                 .buttonStyle(.plain)
                 
-                // 設定
                 Button(action: {
                     SettingsWindowManager.shared.show(engine: engine, settings: settings)
                 }) {
@@ -235,10 +278,9 @@ struct MainTimerView: View {
         }
     }
     
-    // MARK: - 初期ウィンドウ設定 (保存位置の復元 または 画面中央配置)
     private func setupInitialWindow() {
         DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) else { return }
+            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) else { return }
             
             window.level = settings.isAlwaysOnTop ? .floating : .normal
             window.isOpaque = false
@@ -259,11 +301,9 @@ struct MainTimerView: View {
                 targetX = CGFloat(UserDefaults.standard.double(forKey: "saved_window_x"))
                 targetY = CGFloat(UserDefaults.standard.double(forKey: "saved_window_y"))
                 
-                // 画面外への完全なはみ出し（マルチモニター切断時等）を防ぐ安全クランプ
                 targetX = max(visible.minX - dims.width + 50, min(visible.maxX - 50, targetX))
                 targetY = max(visible.minY + 20, min(visible.maxY - dims.height, targetY))
             } else {
-                // 初回は画面中央やや上寄り
                 targetX = visible.origin.x + (visible.size.width - dims.width) / 2.0
                 targetY = visible.origin.y + (visible.size.height - dims.height) * 0.65
             }
@@ -271,9 +311,8 @@ struct MainTimerView: View {
             let newFrame = NSRect(x: targetX, y: targetY, width: dims.width, height: dims.height)
             window.setFrame(newFrame, display: true, animate: false)
             
-            // ウィンドウ移動時の位置自動保存
             NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { notif in
-                if let win = notif.object as? NSWindow, win.title != "タイマー設定" {
+                if let win = notif.object as? NSWindow, win.title != "タイマー設定" && win.title != "タイマー稼働統計・ログエクスポート" {
                     UserDefaults.standard.set(Double(win.frame.origin.x), forKey: "saved_window_x")
                     UserDefaults.standard.set(Double(win.frame.origin.y), forKey: "saved_window_y")
                 }
@@ -281,10 +320,9 @@ struct MainTimerView: View {
         }
     }
     
-    // MARK: - サイズ変更時のウィンドウ更新 (位置保存付き)
     private func updateWindowFrame() {
         DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) else { return }
+            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) else { return }
             let dims = settings.size.windowDimensions(orientation: settings.orientation)
             var currentFrame = window.frame
             let oldTop = currentFrame.origin.y + currentFrame.size.height
@@ -292,7 +330,6 @@ struct MainTimerView: View {
             currentFrame.size = CGSize(width: dims.width, height: dims.height)
             currentFrame.origin.y = oldTop - dims.height
             
-            // 画面端からの過度なはみ出しを調整
             if let screen = window.screen ?? NSScreen.main {
                 let visible = screen.visibleFrame
                 if currentFrame.maxX > visible.maxX + (dims.width - 40) {
@@ -305,7 +342,6 @@ struct MainTimerView: View {
             
             window.setFrame(currentFrame, display: true, animate: true)
             
-            // 位置を保存
             UserDefaults.standard.set(Double(currentFrame.origin.x), forKey: "saved_window_x")
             UserDefaults.standard.set(Double(currentFrame.origin.y), forKey: "saved_window_y")
         }

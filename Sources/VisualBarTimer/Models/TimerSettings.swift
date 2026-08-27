@@ -1,5 +1,13 @@
 import SwiftUI
 import Combine
+import AppKit
+
+enum CloseAction: String, CaseIterable, Identifiable, Codable {
+    case hideToMenuBar = "メニューバーに隠す (バックグラウンド常駐)"
+    case quit = "アプリを完全に終了"
+    
+    var id: String { rawValue }
+}
 
 enum TimerOrientation: String, CaseIterable, Identifiable, Codable {
     case horizontal = "横向き (Horizontal)"
@@ -79,6 +87,7 @@ enum PomodoroPhase: String {
     case rest = "休憩 (Break)"
 }
 
+@MainActor
 class TimerSettings: ObservableObject {
     @Published var orientation: TimerOrientation {
         didSet { UserDefaults.standard.set(orientation.rawValue, forKey: "saved_orientation") }
@@ -102,7 +111,47 @@ class TimerSettings: ObservableObject {
         didSet { UserDefaults.standard.set(isFlashEnabled, forKey: "saved_flash_enabled") }
     }
     
+    // ✕ボタン挙動
+    @Published var closeAction: CloseAction {
+        didSet { UserDefaults.standard.set(closeAction.rawValue, forKey: "saved_close_action") }
+    }
+    
+    // Dock表示
+    @Published var showInDock: Bool {
+        didSet {
+            UserDefaults.standard.set(showInDock, forKey: "saved_show_in_dock")
+            updateDockPolicy()
+        }
+    }
+    
+    // メニューバー表示
+    @Published var showInMenuBar: Bool {
+        didSet {
+            UserDefaults.standard.set(showInMenuBar, forKey: "saved_show_in_menubar")
+            MenuBarManager.shared.updateVisibility()
+        }
+    }
+    
     init() {
+        if let rawClose = UserDefaults.standard.string(forKey: "saved_close_action"),
+           let action = CloseAction(rawValue: rawClose) {
+            self.closeAction = action
+        } else {
+            self.closeAction = .hideToMenuBar
+        }
+        
+        if UserDefaults.standard.object(forKey: "saved_show_in_dock") != nil {
+            self.showInDock = UserDefaults.standard.bool(forKey: "saved_show_in_dock")
+        } else {
+            self.showInDock = true
+        }
+        
+        if UserDefaults.standard.object(forKey: "saved_show_in_menubar") != nil {
+            self.showInMenuBar = UserDefaults.standard.bool(forKey: "saved_show_in_menubar")
+        } else {
+            self.showInMenuBar = true
+        }
+        
         if let rawOrient = UserDefaults.standard.string(forKey: "saved_orientation"),
            let orient = TimerOrientation(rawValue: rawOrient) {
             self.orientation = orient
@@ -147,6 +196,15 @@ class TimerSettings: ObservableObject {
             self.isFlashEnabled = UserDefaults.standard.bool(forKey: "saved_flash_enabled")
         } else {
             self.isFlashEnabled = true
+        }
+        
+        updateDockPolicy()
+    }
+    
+    func updateDockPolicy() {
+        DispatchQueue.main.async {
+            let policy: NSApplication.ActivationPolicy = self.showInDock ? .regular : .accessory
+            NSApp.setActivationPolicy(policy)
         }
     }
 }

@@ -100,6 +100,7 @@ final class ActivityLogManager: ObservableObject {
         day.totalSeconds += seconds
         dailyLogs[key] = day
         saveLogs()
+        MenuBarManager.shared.updateTitle()
     }
     
     private func recordSession(_ session: SessionLog) {
@@ -125,6 +126,7 @@ final class ActivityLogManager: ObservableObject {
             todayTotalSeconds = clamped
         }
         saveLogs()
+        MenuBarManager.shared.updateTitle()
     }
     
     private func updateTodayTotal() {
