@@ -270,24 +270,52 @@ struct SettingsSheet: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.secondary)
                         Spacer()
+                        Text("目のアイコンでタイマーメニューから非表示にできます")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.8))
                     }
                     
                     // カテゴリ一覧
                     VStack(spacing: 4) {
                         ForEach(CategoryManager.shared.allCategories) { cat in
+                            let isHidden = CategoryManager.shared.isHidden(cat)
                             HStack {
                                 Text(cat.title)
                                     .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(isHidden ? .secondary.opacity(0.6) : .white)
+                                
                                 if cat.isPreset {
                                     Text("プリセット")
                                         .font(.system(size: 9))
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.secondary.opacity(0.7))
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
-                                        .background(Color.white.opacity(0.08))
+                                        .background(Color.white.opacity(0.06))
                                         .clipShape(Capsule())
                                 }
+                                
                                 Spacer()
+                                
+                                // 表示 / 隠す トグルボタン
+                                Button(action: {
+                                    CategoryManager.shared.toggleVisibility(for: cat)
+                                }) {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: isHidden ? "eye.slash.fill" : "eye.fill")
+                                            .font(.system(size: 10))
+                                        Text(isHidden ? "隠す" : "表示")
+                                            .font(.system(size: 10, weight: .semibold))
+                                    }
+                                    .foregroundColor(isHidden ? .secondary : .blue)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(isHidden ? Color.white.opacity(0.06) : Color.blue.opacity(0.15))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                                .buttonStyle(.plain)
+                                .help(isHidden ? "クリックしてタイマーメニューに表示する" : "クリックしてタイマーメニューから隠す")
+                                
+                                // カスタムカテゴリのみ削除ボタン
                                 if !cat.isPreset {
                                     Button(action: {
                                         CategoryManager.shared.deleteCustomCategory(id: cat.id)
@@ -300,13 +328,13 @@ struct SettingsSheet: View {
                                             .clipShape(Circle())
                                     }
                                     .buttonStyle(.plain)
-                                    .help("このカスタムカテゴリを削除")
+                                    .help("このカスタムカテゴリを完全に削除")
                                 }
                             }
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.04))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(isHidden ? 0.02 : 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
                         }
                     }
                 }

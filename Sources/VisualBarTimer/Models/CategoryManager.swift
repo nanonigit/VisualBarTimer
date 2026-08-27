@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct ActivityCategory: Codable, Identifiable, Hashable {
-    var id: UUID = UUID()
+    var id: String // "preset_work" などの固定キーまたは UUID文字列
     var icon: String
     var name: String
     var isPreset: Bool = false
@@ -20,18 +20,24 @@ final class CategoryManager: ObservableObject {
     static let shared = CategoryManager()
     
     static let defaultPresets: [ActivityCategory] = [
-        ActivityCategory(icon: "💼", name: "仕事", isPreset: true),
-        ActivityCategory(icon: "✏️", name: "勉強", isPreset: true),
-        ActivityCategory(icon: "💻", name: "開発", isPreset: true),
-        ActivityCategory(icon: "📖", name: "読書", isPreset: true),
-        ActivityCategory(icon: "🎨", name: "創作", isPreset: true),
-        ActivityCategory(icon: "🧘", name: "休憩", isPreset: true),
-        ActivityCategory(icon: "⏱️", name: "集中作業", isPreset: true),
+        ActivityCategory(id: "preset_work", icon: "💼", name: "仕事", isPreset: true),
+        ActivityCategory(id: "preset_study", icon: "✏️", name: "勉強", isPreset: true),
+        ActivityCategory(id: "preset_dev", icon: "💻", name: "開発", isPreset: true),
+        ActivityCategory(id: "preset_reading", icon: "📖", name: "読書", isPreset: true),
+        ActivityCategory(id: "preset_creative", icon: "🎨", name: "創作", isPreset: true),
+        ActivityCategory(id: "preset_break", icon: "🧘", name: "休憩", isPreset: true),
+        ActivityCategory(id: "preset_focus", icon: "⏱️", name: "集中作業", isPreset: true),
     ]
     
     @Published var customCategories: [ActivityCategory] = [] {
         didSet {
             saveCustomCategories()
+        }
+    }
+    
+    @Published var hiddenCategoryIds: Set<String> = [] {
+        didSet {
+            UserDefaults.standard.set(Array(hiddenCategoryIds), forKey: "saved_hidden_category_ids")
         }
     }
     
@@ -45,37 +51,69 @@ final class CategoryManager: ObservableObject {
         return Self.defaultPresets + customCategories
     }
     
+    var visibleCategories: [ActivityCategory] {
+        return allCategories.filter { !hiddenCategoryIds.contains($0.id) }
+    }
+    
     var currentCategory: ActivityCategory {
-        if let found = allCategories.first(where: { $0.id.uuidString == selectedCategoryId || $0.title == selectedCategoryId }) {
+        if let found = allCategories.first(where: { $0.id == selectedCategoryId || $0.title == selectedCategoryId }) {
             return found
         }
-        return Self.defaultPresets[0] // 💼 仕事
+        return visibleCategories.first ?? Self.defaultPresets[0]
     }
     
     private init() {
         loadCustomCategories()
+        if let hiddenArray = UserDefaults.standard.stringArray(forKey: "saved_hidden_category_ids") {
+            self.hiddenCategoryIds = Set(hiddenArray)
+        }
+        
         if let savedId = UserDefaults.standard.string(forKey: "saved_selected_category_id") {
             self.selectedCategoryId = savedId
         } else {
-            self.selectedCategoryId = Self.defaultPresets[0].id.uuidString
+            self.selectedCategoryId = Self.defaultPresets[0].id
+        }
+    }
+    
+    func isHidden(_ category: ActivityCategory) -> Bool {
+        return hiddenCategoryIds.contains(category.id)
+    }
+    
+    func toggleVisibility(for category: ActivityCategory) {
+        if hiddenCategoryIds.contains(category.id) {
+            hiddenCategoryIds.remove(category.id)
+        } else {
+            // 全て非表示にされるのを防止
+            if visibleCategories.count > 1 {
+                hiddenCategoryIds.insert(category.id)
+                if selectedCategoryId == category.id, let firstVisible = visibleCategories.first {
+                    selectCategory(firstVisible)
+                }
+            }
         }
     }
     
     func selectCategory(_ category: ActivityCategory) {
-        self.selectedCategoryId = category.id.uuidString
+        self.selectedCategoryId = category.id
     }
     
     func addCustomCategory(icon: String, name: String) {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let newCat = ActivityCategory(icon: icon.isEmpty ? "🏷️" : icon, name: name.trimmingCharacters(in: .whitespaces), isPreset: false)
+        let newCat = ActivityCategory(
+            id: UUID().uuidString,
+            icon: icon.isEmpty ? "🏷️" : icon,
+            name: name.trimmingCharacters(in: .whitespaces),
+            isPreset: false
+        )
         customCategories.append(newCat)
         selectCategory(newCat)
     }
     
-    func deleteCustomCategory(id: UUID) {
+    func deleteCustomCategory(id: String) {
         customCategories.removeAll(where: { $0.id == id })
-        if selectedCategoryId == id.uuidString {
-            selectCategory(Self.defaultPresets[0])
+        hiddenCategoryIds.remove(id)
+        if selectedCategoryId == id {
+            selectCategory(visibleCategories.first ?? Self.defaultPresets[0])
         }
     }
     

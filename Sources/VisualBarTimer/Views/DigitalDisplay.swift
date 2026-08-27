@@ -54,11 +54,11 @@ struct DigitalDisplay: View {
                 
                 // 作業カテゴリ選択メニュー
                 Menu {
-                    ForEach(categoryManager.allCategories) { cat in
+                    ForEach(categoryManager.visibleCategories) { cat in
                         Button(action: {
                             categoryManager.selectCategory(cat)
                         }) {
-                            if cat.id.uuidString == categoryManager.selectedCategoryId {
+                            if cat.id == categoryManager.selectedCategoryId {
                                 Label(cat.title, systemImage: "checkmark")
                             } else {
                                 Text(cat.title)
