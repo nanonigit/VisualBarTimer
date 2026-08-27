@@ -1,8 +1,8 @@
 # VisualBarTimer ⏱️
 
 <p align="center">
-  <b>A sleek and intuitive visual LED bar timer for macOS.</b><br>
-  macOSネイティブの直感的なフローティングLEDバータイマー
+  <b>A sleek, minimalist visual LED bar timer and menu bar companion for macOS.</b><br>
+  macOSネイティブの直感的なフローティングLEDバータイマー ＆ メニューバー常駐アプリ
 </p>
 
 <p align="center">
@@ -56,10 +56,17 @@
 * **Color & Monochrome Themes**:
   * **Color Theme**: Changes smoothly based on remaining time (Green > 50% → Yellow 20–50% → Red < 20%).
   * **Monochrome Theme**: High-contrast, clean minimalist LED style.
-* **Floating & Always on Top**:
+* **Floating & Clean Borderless Widget**:
+  * Seamless borderless floating window with no OS titlebar bands.
+  * Move freely around your screen by dragging anywhere on the widget body.
+  * Quick-close (🔴) and instant 4-size cycle toggle (🟢 ⤢) right on the widget.
   * Pin button (📌) keeps the timer always on top of your workflow.
-  * Move freely around your screen by dragging anywhere on the background.
   * Automatically remembers window position and custom durations across restarts.
+* **Menu Bar & Background Mode**:
+  * **Customizable Menu Bar Item**: Choose between `m` format (`⏱️ 45m`), `分` format (`⏱️ 45分`), **numbers only (`45` / `1:12`)**, icon only, or hidden.
+  * **Launch at Login**: Starts automatically when logging into macOS (via SMAppService).
+  * **Start Hidden**: Launch quietly to the menu bar without cluttering your desktop.
+  * **Dock Visibility Toggle**: Hide dock icon to run strictly as a background menu bar accessory.
 * **4 Flexible Window Sizes**:
   * **Mini (極小)**: Slim, unobtrusive 68px bar perfect for desk corners.
   * **Small (小)**, **Medium (中)**, **Large (大)**.
@@ -67,8 +74,9 @@
   * **Click / Drag on Bar**: Set time directly by clicking anywhere on the bar.
   * **Click Clock to Edit**: Tap the digital clock to type custom minutes with your keyboard.
   * **Quick Presets**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`.
-* **Daily Activity Tracking & Export**:
+* **Daily Activity Tracking, Editing & Export**:
   * Tracks total timer duration and session counts per day in real-time.
+  * **Manual Duration Adjustments**: Easily fix total time if you forgot to pause the timer (`±15m`, etc.).
   * **Export to CSV / JSON** with one click.
   * Automatically saves logs to `~/Library/Application Support/VisualBarTimer/activity_logs.json` for seamless integration with Obsidian, Notion, Python scripts, Raycast, and Shortcuts.
 * **Modes & Feedback**:
@@ -109,10 +117,17 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
 * **カラー & 白黒テーマ**:
   * **カラー**: 残り時間に応じて変化（緑 50%以上 → 黄 20〜50% → 赤 20%以下）
   * **白黒（モノトーン）**: 余計な色を排した高コントラストなLED表示
-* **フローティング & 最前面固定**:
+* **フローティング & ボーダーレスウィジェット**:
+  * タイトルバーの帯を排除した美しい角丸フローティングデザイン
+  * ウィジェット本体のどこを掴んでも画面上を自由にドラッグ移動可能
+  * 左上に **赤い✕ボタン** と **ワンクリックサイズ切替トグル（🟢 ⤢）** を配置
   * 📌ピンボタンで常時最前面への固定/解除が可能
-  * 背景や時計の周囲をドラッグしてデスクトップ上を自由に移動
   * **位置と分数の自動記憶**: 最後に置いた位置や手入力した分数を再起動後も自動復元
+* **メニューバー常駐 ＆ バックグラウンド動作**:
+  * **メニューバー表示カスタマイズ**: `m` 表示（`⏱️ 45m`）、`分` 表示（`⏱️ 45分`）、**数字のみ（`45` / `1:12`）**、アイコンのみ、非表示から選択可能
+  * **Macログイン時自動起動**: macOS標準のログイン項目として自動起動（SMAppService対応）
+  * **起動時にウィンドウを隠す**: 起動時に画面を邪魔せず、メニューバー常駐として静かに起動
+  * **Dock表示切替**: Dockアイコンを非表示にして完全なメニューバーアクセサリとして使用可能
 * **4段階のサイズプリセット**:
   * **極小 (Mini)**: デスクトップの隅に邪魔にならず置けるスリムバー（高さ約68px）
   * **小 (Small)**, **中 (Medium)**, **大 (Large)**
@@ -120,8 +135,9 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
   * **バーを直接クリック/ドラッグ**: バー上の位置をクリックして直感的に時間をセット
   * **分数の直接手入力**: デジタル時計部分（`10:00`など）をクリックしてキーボードで好きな分数を即入力
   * **ワンクリックプリセット**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`
-* **日別稼働ログ・統計 ＆ 外部連携**:
+* **日別稼働ログ・手動修正 ＆ 外部連携**:
   * 一日あたりの総タイマー稼働時間とセッション回数を自動でリアルタイム集計。
+  * **手動時間修正**: 止め忘れ時に分数を手動入力または `±15分` などのボタンで簡単に微調整可能。
   * **CSV / JSON 形式でのワンクリック書き出し**・クリップボードコピーに対応。
   * ログは `~/Library/Application Support/VisualBarTimer/activity_logs.json` に標準JSONで自動保存されるため、Obsidian、Notion、Pythonスクリプト、Raycast、ショートカット等と容易に連携可能。
 * **多彩なモード & 通知**:
