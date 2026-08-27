@@ -74,6 +74,10 @@
   * **Click / Drag on Bar**: Set time directly by clicking anywhere on the bar.
   * **Click Clock to Edit**: Tap the digital clock to type custom minutes with your keyboard.
   * **Quick Presets**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`.
+* **Activity Categories & Custom Labels**:
+  * Tag your focus sessions with built-in presets: **💼 Work**, **✏️ Study**, **💻 Dev**, **📖 Reading**, **🎨 Creative**, **🧘 Break**, **⏱️ Focus**.
+  * **Create Unlimited Custom Categories**: Add custom emojis and labels (e.g. `🇬🇧 English`, `📊 Tax`, `✍️ Blog`) right from the timer UI.
+  * Category names automatically sync to your Google/Apple Calendar event titles.
 * **Daily Activity Tracking, Editing, Export & Calendar Sync**:
   * Tracks total timer duration and session counts per day in real-time.
   * **Direct Calendar Sync**: One-click sync of daily focus time to **Google Calendar & Apple Calendar** (via EventKit).
@@ -136,6 +140,10 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
   * **バーを直接クリック/ドラッグ**: バー上の位置をクリックして直感的に時間をセット
   * **分数の直接手入力**: デジタル時計部分（`10:00`など）をクリックしてキーボードで好きな分数を即入力
   * **ワンクリックプリセット**: `3m`, `5m`, `10m`, `15m`, `25m`, `30m`, `60m`
+* **作業カテゴリ（アクティビティタグ）＆ 無制限カスタム登録**:
+  * 集中タイマーにカテゴリを付与：**💼 仕事**, **✏️ 勉強**, **💻 開発**, **📖 読書**, **🎨 創作**, **🧘 休憩**, **⏱️ 集中作業**
+  * **無制限のカスタムカテゴリ作成**: 好きな絵文字＋名前（例: `🇬🇧 英語学習`, `📊 確定申告`, `✍️ ブログ`, `🏋️ 筋トレ`）を何個でも自由に追加・保存可能。
+  * タイマー画面でワンクリックでカテゴリを瞬時に切り替えられ、Google/Macカレンダーの予定名にも自動反映。
 * **日別稼働ログ・手動修正・Google/Macカレンダー連携**:
   * 一日あたりの総タイマー稼働時間とセッション回数を自動でリアルタイム集計。
   * **カレンダー直接同期**: 今日の総稼働時間（セッション内訳・分数）を **Googleカレンダー / Appleカレンダーにワンクリックで予定として書き込み**。
