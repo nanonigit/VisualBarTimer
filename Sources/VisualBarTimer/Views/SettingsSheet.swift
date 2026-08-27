@@ -4,6 +4,7 @@ struct SettingsSheet: View {
     @ObservedObject var engine: TimerEngine
     @ObservedObject var settings: TimerSettings
     @ObservedObject var calendarSync = CalendarSyncManager.shared
+    @ObservedObject var categoryManager = CategoryManager.shared
     var onClose: (() -> Void)? = nil
     
     var body: some View {
@@ -270,19 +271,19 @@ struct SettingsSheet: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("目のアイコンでタイマーメニューから非表示にできます")
+                        Text("スイッチOFFでタイマーメニューから隠せます")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary.opacity(0.8))
                     }
                     
                     // カテゴリ一覧
                     VStack(spacing: 4) {
-                        ForEach(CategoryManager.shared.allCategories) { cat in
-                            let isHidden = CategoryManager.shared.isHidden(cat)
+                        ForEach(categoryManager.allCategories) { cat in
+                            let isVisible = !categoryManager.isHidden(cat)
                             HStack {
                                 Text(cat.title)
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(isHidden ? .secondary.opacity(0.6) : .white)
+                                    .foregroundColor(isVisible ? .white : .secondary.opacity(0.6))
                                 
                                 if cat.isPreset {
                                     Text("プリセット")
@@ -296,29 +297,19 @@ struct SettingsSheet: View {
                                 
                                 Spacer()
                                 
-                                // 表示 / 隠す トグルボタン
-                                Button(action: {
-                                    CategoryManager.shared.toggleVisibility(for: cat)
-                                }) {
-                                    HStack(spacing: 3) {
-                                        Image(systemName: isHidden ? "eye.slash.fill" : "eye.fill")
-                                            .font(.system(size: 10))
-                                        Text(isHidden ? "隠す" : "表示")
-                                            .font(.system(size: 10, weight: .semibold))
-                                    }
-                                    .foregroundColor(isHidden ? .secondary : .blue)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(isHidden ? Color.white.opacity(0.06) : Color.blue.opacity(0.15))
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                }
-                                .buttonStyle(.plain)
-                                .help(isHidden ? "クリックしてタイマーメニューに表示する" : "クリックしてタイマーメニューから隠す")
+                                // 表示 / 非表示 トグルスイッチ
+                                Toggle("", isOn: Binding<Bool>(
+                                    get: { !categoryManager.isHidden(cat) },
+                                    set: { _ in categoryManager.toggleVisibility(for: cat) }
+                                ))
+                                .toggleStyle(.switch)
+                                .controlSize(.mini)
+                                .help(isVisible ? "タイマーメニューに表示中（クリックで非表示）" : "タイマーメニューから非表示中（クリックで表示）")
                                 
                                 // カスタムカテゴリのみ削除ボタン
                                 if !cat.isPreset {
                                     Button(action: {
-                                        CategoryManager.shared.deleteCustomCategory(id: cat.id)
+                                        categoryManager.deleteCustomCategory(id: cat.id)
                                     }) {
                                         Image(systemName: "trash")
                                             .font(.system(size: 10))
@@ -332,8 +323,8 @@ struct SettingsSheet: View {
                                 }
                             }
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(Color.white.opacity(isHidden ? 0.02 : 0.05))
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(isVisible ? 0.05 : 0.02))
                             .clipShape(RoundedRectangle(cornerRadius: 5))
                         }
                     }
@@ -368,7 +359,8 @@ struct SettingsSheet: View {
             }
             .padding(24)
         }
-        .frame(width: 460, height: 570)
+        .scrollIndicators(.visible)
+        .frame(width: 480, height: 600)
         .onAppear {
             calendarSync.checkAuthorization()
         }
