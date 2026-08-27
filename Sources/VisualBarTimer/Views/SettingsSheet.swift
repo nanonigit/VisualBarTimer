@@ -263,6 +263,56 @@ struct SettingsSheet: View {
                 
                 Divider()
                 
+                // 作業カテゴリ管理
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("作業カテゴリ管理 (カレンダー予定名)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    
+                    // カテゴリ一覧
+                    VStack(spacing: 4) {
+                        ForEach(CategoryManager.shared.allCategories) { cat in
+                            HStack {
+                                Text(cat.title)
+                                    .font(.system(size: 12, weight: .medium))
+                                if cat.isPreset {
+                                    Text("プリセット")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.white.opacity(0.08))
+                                        .clipShape(Capsule())
+                                }
+                                Spacer()
+                                if !cat.isPreset {
+                                    Button(action: {
+                                        CategoryManager.shared.deleteCustomCategory(id: cat.id)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.red.opacity(0.8))
+                                            .padding(4)
+                                            .background(Color.red.opacity(0.12))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("このカスタムカテゴリを削除")
+                                }
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.04))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                    }
+                }
+                
+                Divider()
+                
                 // 稼働ログ・統計
                 VStack(alignment: .leading, spacing: 6) {
                     Text("タイマー稼働ログ・外部連携")

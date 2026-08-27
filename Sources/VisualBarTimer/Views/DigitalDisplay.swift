@@ -3,23 +3,19 @@ import SwiftUI
 struct DigitalDisplay: View {
     @ObservedObject var engine: TimerEngine
     @ObservedObject var settings: TimerSettings
+    @ObservedObject var categoryManager = CategoryManager.shared
     
     @State private var isEditing: Bool = false
     @State private var inputMinutes: String = ""
-    @FocusState private var isFocused: Bool
+    @State private var showAddCategoryDialog: Bool = false
+    @State private var newCategoryIcon: String = "🏷️"
+    @State private var newCategoryName: String = ""
     
     var timeString: String {
-        let time = engine.currentMode == .countup ? engine.elapsedTime : engine.remainingTime
-        let totalSeconds = max(0, Int(ceil(time)))
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-        
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%02d:%02d", minutes, seconds)
-        }
+        let total = (engine.currentMode == .countup) ? engine.elapsedTime : engine.remainingTime
+        let minutes = Int(total) / 60
+        let seconds = Int(total) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
     
     var modeBadgeText: String {
@@ -29,13 +25,25 @@ struct DigitalDisplay: View {
         case .countup:
             return "COUNTUP"
         case .pomodoro:
-            return engine.pomodoroPhase == .work ? "POMO • WORK" : "POMO • BREAK"
+            return engine.pomodoroPhase == .work ? "POMO・FOCUS" : "POMO・BREAK"
+        }
+    }
+    
+    var badgeColor: Color {
+        switch engine.currentMode {
+        case .countdown:
+            return .cyan
+        case .countup:
+            return .orange
+        case .pomodoro:
+            return engine.pomodoroPhase == .work ? .red : .green
         }
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
+                // モードバッジ
                 Text(modeBadgeText)
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundColor(badgeColor)
@@ -43,6 +51,44 @@ struct DigitalDisplay: View {
                     .padding(.vertical, 2)
                     .background(badgeColor.opacity(0.15))
                     .clipShape(Capsule())
+                
+                // 作業カテゴリ選択メニュー
+                Menu {
+                    ForEach(categoryManager.allCategories) { cat in
+                        Button(action: {
+                            categoryManager.selectCategory(cat)
+                        }) {
+                            if cat.id.uuidString == categoryManager.selectedCategoryId {
+                                Label(cat.title, systemImage: "checkmark")
+                            } else {
+                                Text(cat.title)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        showAddCategoryDialog = true
+                    }) {
+                        Label("新しいカテゴリを追加...", systemImage: "plus")
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(categoryManager.currentCategory.title)
+                            .font(.system(size: 9, weight: .bold))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7))
+                    }
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("作業カテゴリを切り替え (カレンダーの予定名に反映されます)")
                 
                 // 本日の累計稼働時間
                 Button(action: {
@@ -61,88 +107,163 @@ struct DigitalDisplay: View {
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help("クリックして本日の統計・履歴ログ・エクスポートを開く")
+                .help("クリックして本日の統計・履歴ログ・カレンダー同期を開く")
             }
             
             if isEditing {
                 HStack(spacing: 4) {
                     TextField("分", text: $inputMinutes)
                         .textFieldStyle(.plain)
-                        .font(.system(size: settings.size == .extraSmall ? 16 : (settings.size == .small ? 20 : (settings.size == .medium ? 26 : 32)), weight: .heavy, design: .monospaced))
+                        .font(.system(size: textSize, weight: .heavy, design: .monospaced))
                         .foregroundColor(.white)
-                        .frame(width: settings.size == .extraSmall ? 55 : 75)
+                        .frame(width: 80)
                         .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
                         .background(Color.white.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.cyan, lineWidth: 1.5)
-                        )
-                        .focused($isFocused)
                         .onSubmit {
-                            applyInput()
+                            submitCustomTime()
                         }
                     
                     Text("分")
-                        .font(.system(size: settings.size == .extraSmall ? 11 : 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.secondary)
                     
                     Button("決定") {
-                        applyInput()
+                        submitCustomTime()
                     }
-                    .font(.system(size: settings.size == .extraSmall ? 9 : 11, weight: .bold))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 3)
-                    .background(Color.cyan.opacity(0.8))
-                    .foregroundColor(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .font(.system(size: 10, weight: .bold))
+                    .buttonStyle(.borderedProminent)
+                    
+                    Button("✕") {
+                        isEditing = false
+                    }
+                    .font(.system(size: 10))
                     .buttonStyle(.plain)
                 }
             } else {
-                HStack(spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(timeString)
-                        .font(.system(size: settings.size == .extraSmall ? 17 : (settings.size == .small ? 22 : (settings.size == .medium ? 28 : 36)), weight: .heavy, design: .monospaced))
+                        .font(.system(size: textSize, weight: .heavy, design: .monospaced))
                         .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.8), radius: 2)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            inputMinutes = "\(Int(round(engine.targetDuration / 60.0)))"
+                            isEditing = true
+                        }
+                        .help("クリックして分数を直接キーボード入力")
                     
-                    if !engine.isRunning {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
+                    Image(systemName: "pencil")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.4))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            inputMinutes = "\(Int(round(engine.targetDuration / 60.0)))"
+                            isEditing = true
+                        }
                 }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if !engine.isRunning {
-                        startEditing()
-                    }
-                }
-                .help("クリックして分数を直接入力")
+            }
+        }
+        .sheet(isPresented: $showAddCategoryDialog) {
+            AddCategorySheet {
+                showAddCategoryDialog = false
             }
         }
     }
     
-    private func startEditing() {
-        let currentMins = max(1, Int(round(engine.targetDuration / 60)))
-        inputMinutes = "\(currentMins)"
-        isEditing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            isFocused = true
+    private var textSize: CGFloat {
+        switch settings.size {
+        case .extraSmall:
+            return 17
+        case .small:
+            return 22
+        case .medium:
+            return 28
+        case .large:
+            return 36
         }
     }
     
-    private func applyInput() {
+    private func submitCustomTime() {
         if let mins = Double(inputMinutes), mins > 0 {
-            engine.setDuration(mins * 60)
+            engine.setDuration(mins * 60.0)
         }
         isEditing = false
     }
+}
+
+// 新規カスタムカテゴリ追加シート
+struct AddCategorySheet: View {
+    var onDismiss: () -> Void
     
-    private var badgeColor: Color {
-        if engine.currentMode == .pomodoro {
-            return engine.pomodoroPhase == .work ? .orange : .green
+    @State private var selectedEmoji: String = "🎯"
+    @State private var categoryName: String = ""
+    @ObservedObject var categoryManager = CategoryManager.shared
+    
+    let emojiCandidates = ["🎯", "🇬🇧", "📊", "✍️", "🏋️", "☕", "🔬", "🗣️", "🛠️", "📚", "🎮", "🧘"]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("新規カテゴリの追加")
+                    .font(.headline)
+                Spacer()
+                Button("閉じる") {
+                    onDismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+            }
+            
+            Divider()
+            
+            Text("アイコン絵文字を選択:")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 6) {
+                ForEach(emojiCandidates, id: \.self) { emoji in
+                    Button(action: {
+                        selectedEmoji = emoji
+                    }) {
+                        Text(emoji)
+                            .font(.system(size: 16))
+                            .padding(6)
+                            .background(selectedEmoji == emoji ? Color.blue.opacity(0.3) : Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 1.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("カテゴリ名:")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                TextField("例: 英語学習、確定申告、ブログ", text: $categoryName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 13))
+            }
+            
+            Spacer()
+            
+            HStack {
+                Spacer()
+                Button("キャンセル") {
+                    onDismiss()
+                }
+                Button("追加する") {
+                    categoryManager.addCustomCategory(icon: selectedEmoji, name: categoryName)
+                    onDismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(categoryName.trimmingCharacters(in: .whitespaces).isEmpty)
+                .keyboardShortcut(.defaultAction)
+            }
         }
-        return .cyan
+        .padding(20)
+        .frame(width: 360, height: 230)
     }
 }

@@ -7,6 +7,7 @@ struct SessionLog: Codable, Identifiable {
     let endTime: Date
     let durationSeconds: TimeInterval
     let mode: String
+    var category: String = "💼 仕事"
 }
 
 struct DayLog: Codable, Identifiable {
@@ -106,14 +107,15 @@ final class ActivityLogManager: ObservableObject {
     }
     
     // タイマー停止・リセット・終了時
-    func onTimerStopped(mode: String, elapsedDelta: TimeInterval) {
+    func onTimerStopped(mode: String, elapsedDelta: TimeInterval, category: String? = nil) {
         guard let start = sessionStartTime, elapsedDelta > 1.0 else {
             sessionStartTime = nil
             return
         }
         
         let end = Date()
-        let session = SessionLog(startTime: start, endTime: end, durationSeconds: elapsedDelta, mode: mode)
+        let cat = category ?? CategoryManager.shared.currentCategory.title
+        let session = SessionLog(startTime: start, endTime: end, durationSeconds: elapsedDelta, mode: mode, category: cat)
         recordSession(session)
         sessionStartTime = nil
     }

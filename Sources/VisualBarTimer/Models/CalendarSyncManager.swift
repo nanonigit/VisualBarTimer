@@ -276,10 +276,11 @@ final class CalendarSyncManager: ObservableObject {
                         let event = EKEvent(eventStore: eventStore)
                         event.calendar = calendar
                         let mins = max(1, Int(round(session.durationSeconds / 60.0)))
-                        event.title = "⏱️ タイマー集中 (\(mins)分)"
+                        let catTitle = session.category.isEmpty ? "⏱️ タイマー集中" : session.category
+                        event.title = "\(catTitle) (\(mins)分)"
                         event.startDate = session.startTime
                         event.endDate = session.endTime
-                        event.notes = "VisualBarTimer 集中セッション\n・モード: \(session.mode)\n・稼働時間: \(mins)分"
+                        event.notes = "VisualBarTimer 集中セッション\n・カテゴリ: \(catTitle)\n・モード: \(session.mode)\n・稼働時間: \(mins)分"
                         try eventStore.save(event, span: .thisEvent)
                     }
                 }
