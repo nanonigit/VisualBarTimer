@@ -101,10 +101,7 @@ final class MenuBarManager: NSObject {
     }
     
     @objc private func showMainWindow() {
-        if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        MainWindowController.shared.show()
     }
     
     @objc private func toggleTimer() {

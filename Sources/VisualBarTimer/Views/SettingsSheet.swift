@@ -170,9 +170,7 @@ struct SettingsSheet: View {
                             .font(.system(size: 13))
                     }
                     .onChange(of: settings.isAlwaysOnTop) { isOn in
-                        if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
-                            window.level = isOn ? .floating : .normal
-                        }
+                        MainWindowController.shared.window?.level = isOn ? .floating : .normal
                     }
                 }
                 .toggleStyle(.switch)

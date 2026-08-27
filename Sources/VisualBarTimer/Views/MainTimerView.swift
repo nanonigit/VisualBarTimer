@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct MainTimerView: View {
-    @StateObject private var engine = TimerEngine()
-    @StateObject private var settings = TimerSettings()
+    @ObservedObject var engine: TimerEngine
+    @ObservedObject var settings: TimerSettings
     @State private var showSettings = false
     
     var body: some View {
+        let dims = settings.size.windowDimensions(orientation: settings.orientation)
+        
         ZStack(alignment: .topLeading) {
             // 背景ドラッグ移動（アプリ本体どこでも掴んで移動可能）
             WindowDraggableView()
@@ -43,7 +45,7 @@ struct MainTimerView: View {
                 .buttonStyle(.plain)
                 .help(settings.closeAction == .quit ? "アプリを終了" : "メニューバーに隠す")
                 
-                // サイズ切り替えトグルボタン (緑 / シルバー)
+                // サイズ切り替えトグルボタン (緑 / ⤢)
                 Button(action: {
                     cycleNextSize()
                 }) {
@@ -62,6 +64,7 @@ struct MainTimerView: View {
             .padding(.top, 8)
             .padding(.leading, 8)
         }
+        .frame(width: dims.width, height: dims.height)
         .background(
             ZStack {
                 VisualEffectBackground()
@@ -74,15 +77,11 @@ struct MainTimerView: View {
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
-        .onAppear {
-            setupInitialWindow()
-            MenuBarManager.shared.setup(engine: engine, settings: settings)
-        }
         .onChange(of: settings.size) { _ in
-            updateWindowFrame()
+            MainWindowController.shared.updateFrame()
         }
         .onChange(of: settings.orientation) { _ in
-            updateWindowFrame()
+            MainWindowController.shared.updateFrame()
         }
     }
     
@@ -109,9 +108,7 @@ struct MainTimerView: View {
                 settings.showInMenuBar = true
             }
             MenuBarManager.shared.updateTitle()
-            if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
-                window.orderOut(nil)
-            }
+            MainWindowController.shared.hide()
         }
     }
     
@@ -265,9 +262,7 @@ struct MainTimerView: View {
             HStack(spacing: 4) {
                 Button(action: {
                     settings.isAlwaysOnTop.toggle()
-                    if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
-                        window.level = settings.isAlwaysOnTop ? .floating : .normal
-                    }
+                    MainWindowController.shared.window?.level = settings.isAlwaysOnTop ? .floating : .normal
                 }) {
                     Image(systemName: settings.isAlwaysOnTop ? "pin.fill" : "pin.slash")
                         .font(.system(size: 10))
@@ -307,78 +302,6 @@ struct MainTimerView: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
-    }
-    
-    private func setupInitialWindow() {
-        DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) else { return }
-            
-            window.styleMask = [.borderless]
-            window.level = settings.isAlwaysOnTop ? .floating : .normal
-            window.isOpaque = false
-            window.backgroundColor = .clear
-            window.isMovableByWindowBackground = true
-            
-            let dims = settings.size.windowDimensions(orientation: settings.orientation)
-            let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]
-            let visible = screen.visibleFrame
-            
-            var targetX: CGFloat
-            var targetY: CGFloat
-            
-            if UserDefaults.standard.object(forKey: "saved_window_x") != nil,
-               UserDefaults.standard.object(forKey: "saved_window_y") != nil {
-                targetX = CGFloat(UserDefaults.standard.double(forKey: "saved_window_x"))
-                targetY = CGFloat(UserDefaults.standard.double(forKey: "saved_window_y"))
-                
-                targetX = max(visible.minX - dims.width + 50, min(visible.maxX - 50, targetX))
-                targetY = max(visible.minY + 20, min(visible.maxY - dims.height, targetY))
-            } else {
-                targetX = visible.origin.x + (visible.size.width - dims.width) / 2.0
-                targetY = visible.origin.y + (visible.size.height - dims.height) * 0.65
-            }
-            
-            let newFrame = NSRect(x: targetX, y: targetY, width: dims.width, height: dims.height)
-            window.setFrame(newFrame, display: true, animate: false)
-            
-            if settings.startHidden && settings.showInMenuBar {
-                window.orderOut(nil)
-            }
-            
-            NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { notif in
-                if let win = notif.object as? NSWindow, win.title != "タイマー設定" && win.title != "タイマー稼働統計・ログエクスポート" {
-                    UserDefaults.standard.set(Double(win.frame.origin.x), forKey: "saved_window_x")
-                    UserDefaults.standard.set(Double(win.frame.origin.y), forKey: "saved_window_y")
-                }
-            }
-        }
-    }
-    
-    private func updateWindowFrame() {
-        DispatchQueue.main.async {
-            guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) else { return }
-            let dims = settings.size.windowDimensions(orientation: settings.orientation)
-            var currentFrame = window.frame
-            let oldTop = currentFrame.origin.y + currentFrame.size.height
-            
-            currentFrame.size = CGSize(width: dims.width, height: dims.height)
-            currentFrame.origin.y = oldTop - dims.height
-            
-            if let screen = window.screen ?? NSScreen.main {
-                let visible = screen.visibleFrame
-                if currentFrame.maxX > visible.maxX + (dims.width - 40) {
-                    currentFrame.origin.x = visible.maxX - currentFrame.size.width
-                }
-                if currentFrame.minX < visible.minX - (dims.width - 40) {
-                    currentFrame.origin.x = visible.minX
-                }
-            }
-            
-            window.setFrame(currentFrame, display: true, animate: true)
-            
-            UserDefaults.standard.set(Double(currentFrame.origin.x), forKey: "saved_window_x")
-            UserDefaults.standard.set(Double(currentFrame.origin.y), forKey: "saved_window_y")
         }
     }
 }
