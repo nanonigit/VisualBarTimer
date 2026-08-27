@@ -8,6 +8,7 @@ final class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem?
     private weak var engine: TimerEngine?
     private weak var settings: TimerSettings?
+    private var contextMenu: NSMenu?
     
     override private init() {
         super.init()
@@ -45,7 +46,8 @@ final class MenuBarManager: NSObject {
         if settings.showInMenuBar {
             if statusItem == nil {
                 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-                buildMenu()
+                setupStatusItemButton()
+                buildContextMenu()
             }
             updateTitle()
         } else {
@@ -53,6 +55,32 @@ final class MenuBarManager: NSObject {
                 NSStatusBar.system.removeStatusItem(item)
                 statusItem = nil
             }
+        }
+    }
+    
+    private func setupStatusItemButton() {
+        guard let button = statusItem?.button else { return }
+        button.target = self
+        button.action = #selector(onMenuBarItemClicked(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    }
+    
+    @objc private func onMenuBarItemClicked(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else {
+            MainWindowController.shared.toggleVisibility()
+            return
+        }
+        
+        if event.type == .rightMouseUp {
+            // 右クリック時はサブメニューを表示
+            if let menu = contextMenu {
+                statusItem?.menu = menu
+                statusItem?.button?.performClick(nil)
+                statusItem?.menu = nil // 次回左クリックのために即座に解除
+            }
+        } else {
+            // 左クリック時はアプリ本体ウィンドウをそのまま開く/トグル
+            MainWindowController.shared.toggleVisibility()
         }
     }
     
@@ -84,7 +112,7 @@ final class MenuBarManager: NSObject {
         button.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
     }
     
-    private func buildMenu() {
+    private func buildContextMenu() {
         let menu = NSMenu()
         
         let showItem = NSMenuItem(title: "タイマーを表示 / 最前面", action: #selector(showMainWindow), keyEquivalent: "t")
@@ -117,7 +145,7 @@ final class MenuBarManager: NSObject {
         quitItem.target = self
         menu.addItem(quitItem)
         
-        statusItem?.menu = menu
+        self.contextMenu = menu
     }
     
     @objc private func showMainWindow() {

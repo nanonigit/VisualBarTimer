@@ -141,10 +141,42 @@ struct ControlPanelView: View {
                 .buttonStyle(.plain)
                 .help("縦向き/横向き切り替え")
                 
-                // 詳細設定
-                Button(action: {
-                    SettingsWindowManager.shared.show(engine: engine, settings: settings)
-                }) {
+                // 歯車プルダウンメニュー
+                Menu {
+                    Button(action: {
+                        SettingsWindowManager.shared.show(engine: engine, settings: settings)
+                    }) {
+                        Label("設定...", systemImage: "gearshape")
+                    }
+                    
+                    Button(action: {
+                        StatsWindowManager.shared.show()
+                    }) {
+                        Label("本日の稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        engine.toggle()
+                    }) {
+                        Label(engine.isRunning ? "一時停止" : "スタート", systemImage: engine.isRunning ? "pause.fill" : "play.fill")
+                    }
+                    
+                    Button(action: {
+                        engine.reset()
+                    }) {
+                        Label("リセット", systemImage: "arrow.counterclockwise")
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        NSApp.terminate(nil)
+                    }) {
+                        Label("VisualBarTimer を終了", systemImage: "power")
+                    }
+                } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 11))
                         .foregroundColor(.white)
@@ -152,8 +184,9 @@ struct ControlPanelView: View {
                         .background(Color.white.opacity(0.1))
                         .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
-                .help("設定")
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("メニュー & 設定")
             }
         }
     }

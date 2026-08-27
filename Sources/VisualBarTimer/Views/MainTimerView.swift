@@ -154,10 +154,25 @@ struct MainTimerView: View {
                 .buttonStyle(.plain)
                 .keyboardShortcut("r", modifiers: [])
                 
-                // 設定
-                Button(action: {
-                    SettingsWindowManager.shared.show(engine: engine, settings: settings)
-                }) {
+                // 歯車メニュー
+                Menu {
+                    Button(action: {
+                        SettingsWindowManager.shared.show(engine: engine, settings: settings)
+                    }) {
+                        Label("設定...", systemImage: "gearshape")
+                    }
+                    Button(action: {
+                        StatsWindowManager.shared.show()
+                    }) {
+                        Label("稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                    }
+                    Divider()
+                    Button(action: {
+                        NSApp.terminate(nil)
+                    }) {
+                        Label("VisualBarTimer を終了", systemImage: "power")
+                    }
+                } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 10))
                         .padding(5)
@@ -165,7 +180,8 @@ struct MainTimerView: View {
                         .foregroundColor(.white)
                         .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
             
             // 下段: スリムLEDバー
@@ -289,9 +305,24 @@ struct MainTimerView: View {
                 }
                 .buttonStyle(.plain)
                 
-                Button(action: {
-                    SettingsWindowManager.shared.show(engine: engine, settings: settings)
-                }) {
+                Menu {
+                    Button(action: {
+                        SettingsWindowManager.shared.show(engine: engine, settings: settings)
+                    }) {
+                        Label("設定...", systemImage: "gearshape")
+                    }
+                    Button(action: {
+                        StatsWindowManager.shared.show()
+                    }) {
+                        Label("稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                    }
+                    Divider()
+                    Button(action: {
+                        NSApp.terminate(nil)
+                    }) {
+                        Label("VisualBarTimer を終了", systemImage: "power")
+                    }
+                } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.white)
@@ -300,7 +331,7 @@ struct MainTimerView: View {
                         .background(Color.white.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .buttonStyle(.plain)
+                .menuStyle(.borderlessButton)
             }
         }
     }

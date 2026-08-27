@@ -96,6 +96,18 @@ final class MainWindowController {
         window?.orderOut(nil)
     }
     
+    func toggleVisibility() {
+        guard let win = window else {
+            setupAndShow()
+            return
+        }
+        if win.isVisible && NSApp.isActive {
+            hide()
+        } else {
+            show()
+        }
+    }
+    
     func updateFrame(animate: Bool = true) {
         guard let win = window else { return }
         let dims = settings.size.windowDimensions(orientation: settings.orientation)
