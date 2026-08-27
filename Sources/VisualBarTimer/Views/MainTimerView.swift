@@ -6,7 +6,7 @@ struct MainTimerView: View {
     @State private var showSettings = false
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             // 背景ドラッグ移動（アプリ本体どこでも掴んで移動可能）
             WindowDraggableView()
             
@@ -24,6 +24,43 @@ struct MainTimerView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
+            
+            // 左上: ✕ボタン ＋ サイズ切替トグルボタン
+            HStack(spacing: 5) {
+                // 赤い✕ボタン
+                Button(action: {
+                    handleCloseButton()
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.red.opacity(0.85))
+                            .frame(width: 11, height: 11)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 6, weight: .heavy))
+                            .foregroundColor(.black.opacity(0.7))
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(settings.closeAction == .quit ? "アプリを終了" : "メニューバーに隠す")
+                
+                // サイズ切り替えトグルボタン (緑 / シルバー)
+                Button(action: {
+                    cycleNextSize()
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.green.opacity(0.85))
+                            .frame(width: 11, height: 11)
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 6, weight: .bold))
+                            .foregroundColor(.black.opacity(0.7))
+                    }
+                }
+                .buttonStyle(.plain)
+                .help("サイズを切り替え (現在: \(settings.size.rawValue))")
+            }
+            .padding(.top, 8)
+            .padding(.leading, 8)
         }
         .background(
             ZStack {
@@ -49,10 +86,42 @@ struct MainTimerView: View {
         }
     }
     
+    private func cycleNextSize() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            switch settings.size {
+            case .extraSmall:
+                settings.size = .small
+            case .small:
+                settings.size = .medium
+            case .medium:
+                settings.size = .large
+            case .large:
+                settings.size = .extraSmall
+            }
+        }
+    }
+    
+    private func handleCloseButton() {
+        if settings.closeAction == .quit {
+            NSApp.terminate(nil)
+        } else {
+            if !settings.showInMenuBar {
+                settings.showInMenuBar = true
+            }
+            MenuBarManager.shared.updateTitle()
+            if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) {
+                window.orderOut(nil)
+            }
+        }
+    }
+    
     // MARK: - 極小モード (Mini) 横向きスリムバー
     private var miniHorizontalContent: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
+                // 左上ボタン用の余白
+                Spacer().frame(width: 24)
+                
                 DigitalDisplay(engine: engine, settings: settings)
                 
                 Spacer()
@@ -116,6 +185,9 @@ struct MainTimerView: View {
         return VStack(alignment: .leading, spacing: 10) {
             // 上段: デジタル時計 + ドラッグインジケータ
             HStack(alignment: .center) {
+                // 左上ボタン用の余白
+                Spacer().frame(width: 26)
+                
                 DigitalDisplay(engine: engine, settings: settings)
                 Spacer()
                 Image(systemName: "line.3.horizontal")
@@ -138,6 +210,11 @@ struct MainTimerView: View {
         let dims = settings.size.windowDimensions(orientation: .vertical)
         
         return VStack(spacing: 8) {
+            HStack {
+                // 左上ボタン用の余白
+                Spacer().frame(width: 24)
+                Spacer()
+            }
             DigitalDisplay(engine: engine, settings: settings)
             
             // 中段: 縦向きLEDバー
@@ -237,17 +314,11 @@ struct MainTimerView: View {
         DispatchQueue.main.async {
             guard let window = NSApp.windows.first(where: { $0.title != "タイマー設定" && $0.title != "タイマー稼働統計・ログエクスポート" }) else { return }
             
+            window.styleMask = [.borderless]
             window.level = settings.isAlwaysOnTop ? .floating : .normal
             window.isOpaque = false
             window.backgroundColor = .clear
             window.isMovableByWindowBackground = true
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            
-            // 3つの信号機ボタンを完全非表示
-            window.standardWindowButton(.closeButton)?.isHidden = true
-            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            window.standardWindowButton(.zoomButton)?.isHidden = true
             
             let dims = settings.size.windowDimensions(orientation: settings.orientation)
             let screen = window.screen ?? NSScreen.main ?? NSScreen.screens[0]

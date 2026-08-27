@@ -24,13 +24,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.isMovableByWindowBackground = true
             window.level = .floating
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
             
-            // 3つの信号機ボタンを完全非表示
-            window.standardWindowButton(.closeButton)?.isHidden = true
-            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            window.standardWindowButton(.zoomButton)?.isHidden = true
+            // タイトルバーの帯を完全消去 (ボーダーレス純粋ウィジェット)
+            window.styleMask = [.borderless]
+            window.isMovableByWindowBackground = true
         }
     }
     
