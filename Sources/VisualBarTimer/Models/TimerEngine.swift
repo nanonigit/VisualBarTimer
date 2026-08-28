@@ -159,6 +159,7 @@ class TimerEngine: ObservableObject {
         elapsedTime = 0
         pausedRemainingTime = targetDuration
         pausedElapsedTime = 0
+        MenuBarManager.shared.updateTitle()
     }
     
     func setDuration(_ duration: TimeInterval) {
@@ -171,6 +172,7 @@ class TimerEngine: ObservableObject {
         elapsedTime = 0
         pausedRemainingTime = targetDuration
         pausedElapsedTime = 0
+        MenuBarManager.shared.updateTitle()
         
         if isWasRunning {
             start()
@@ -222,6 +224,8 @@ class TimerEngine: ObservableObject {
                 remainingTime = max(0, targetDuration - newElapsed)
             }
         }
+        
+        MenuBarManager.shared.updateTitle()
     }
     
     private func timerFinished() {

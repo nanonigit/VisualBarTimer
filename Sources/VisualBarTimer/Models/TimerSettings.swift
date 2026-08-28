@@ -19,10 +19,12 @@ enum WindowPlacement: String, CaseIterable, Identifiable, Codable {
 }
 
 enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
+    case pieChartOnly = "リアルタイム円グラフ (アイコンのみ)"
+    case pieChartWithRemaining = "リアルタイム円グラフ ＋ 残り時間 (⏱️ 08:30)"
     case english = "m 表示 (⏱️ 45m)"
     case japanese = "分 表示 (⏱️ 45分)"
-    case numberOnly = "数字のみ (アイコンなし: 45)"
-    case iconOnly = "アイコンのみ (⏱️)"
+    case numberOnly = "数字のみ (45)"
+    case iconOnly = "固定アイコンのみ (⏱️)"
     
     var id: String { rawValue }
 }
