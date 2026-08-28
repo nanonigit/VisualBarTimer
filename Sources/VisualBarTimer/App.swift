@@ -94,9 +94,10 @@ final class MainWindowController {
             win.level = .normal
             win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         case .desktopWidget:
-            // 壁紙のすぐ上に固定し、全デスクトップ・Spacesで常に背景として表示
-            win.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopWindow)))
+            // 他の一般アプリの最背面に配置しつつ、クリックイベントを確実に受け取る
+            win.level = NSWindow.Level(NSWindow.Level.normal.rawValue - 1)
             win.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            win.orderBack(nil)
         }
     }
     
