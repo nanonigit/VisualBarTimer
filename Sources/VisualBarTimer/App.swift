@@ -12,6 +12,15 @@ struct VisualBarTimerApp: App {
     }
 }
 
+final class KeyWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return true
+    }
+    override var canBecomeMain: Bool {
+        return true
+    }
+}
+
 @MainActor
 final class MainWindowController {
     static let shared = MainWindowController()
@@ -48,7 +57,7 @@ final class MainWindowController {
         let contentView = MainTimerView(engine: engine, settings: settings)
         let hostingController = NSHostingController(rootView: contentView)
         
-        let newWindow = NSWindow(
+        let newWindow = KeyWindow(
             contentRect: NSRect(x: targetX, y: targetY, width: dims.width, height: dims.height),
             styleMask: [.borderless],
             backing: .buffered,

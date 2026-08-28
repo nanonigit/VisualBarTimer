@@ -207,6 +207,11 @@ struct DigitalDisplay: View {
         let currentMins = Int(round(engine.targetDuration / 60.0))
         inputMinutes = "\(currentMins)"
         isEditing = true
+        NSApp.activate(ignoringOtherApps: true)
+        MainWindowController.shared.window?.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            isFieldFocused = true
+        }
     }
     
     private func submitCustomTime() {
