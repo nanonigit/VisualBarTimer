@@ -7,9 +7,8 @@ struct DigitalDisplay: View {
     
     @State private var isEditing: Bool = false
     @State private var inputMinutes: String = ""
+    @FocusState private var isFieldFocused: Bool
     @State private var showAddCategoryDialog: Bool = false
-    @State private var newCategoryIcon: String = "🏷️"
-    @State private var newCategoryName: String = ""
     
     var timeString: String {
         let total = (engine.currentMode == .countup) ? engine.elapsedTime : engine.remainingTime
@@ -111,34 +110,57 @@ struct DigitalDisplay: View {
             }
             
             if isEditing {
-                HStack(spacing: 4) {
+                // コンパクトなインライン編集バー（極小Miniモードでも絶対に溢れないスリム設計）
+                HStack(spacing: 3) {
                     TextField("分", text: $inputMinutes)
                         .textFieldStyle(.plain)
-                        .font(.system(size: textSize, weight: .heavy, design: .monospaced))
+                        .font(.system(size: max(14, textSize - 2), weight: .heavy, design: .monospaced))
                         .foregroundColor(.white)
-                        .frame(width: 80)
+                        .frame(width: 50)
                         .padding(.horizontal, 4)
-                        .background(Color.white.opacity(0.15))
+                        .padding(.vertical, 1)
+                        .background(Color.white.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .focused($isFieldFocused)
                         .onSubmit {
                             submitCustomTime()
                         }
                     
                     Text("分")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.secondary)
                     
-                    Button("決定") {
+                    // 決定ボタン
+                    Button(action: {
                         submitCustomTime()
+                    }) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 8, weight: .heavy))
+                            .foregroundColor(.black)
+                            .padding(4)
+                            .background(Color.cyan)
+                            .clipShape(Circle())
                     }
-                    .font(.system(size: 10, weight: .bold))
-                    .buttonStyle(.borderedProminent)
-                    
-                    Button("✕") {
-                        isEditing = false
-                    }
-                    .font(.system(size: 10))
                     .buttonStyle(.plain)
+                    .help("確定 (Returnキー)")
+                    
+                    // キャンセルボタン
+                    Button(action: {
+                        isEditing = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(4)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("キャンセル")
+                }
+                .padding(.top, 1)
+                .onAppear {
+                    isFieldFocused = true
                 }
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -147,18 +169,16 @@ struct DigitalDisplay: View {
                         .foregroundColor(.white)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            inputMinutes = "\(Int(round(engine.targetDuration / 60.0)))"
-                            isEditing = true
+                            startEditing()
                         }
-                        .help("クリックして分数を直接キーボード入力")
+                        .help("クリックして分数を直接入力")
                     
                     Image(systemName: "pencil")
                         .font(.system(size: 9))
                         .foregroundColor(.white.opacity(0.4))
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            inputMinutes = "\(Int(round(engine.targetDuration / 60.0)))"
-                            isEditing = true
+                            startEditing()
                         }
                 }
             }
@@ -181,6 +201,12 @@ struct DigitalDisplay: View {
         case .large:
             return 36
         }
+    }
+    
+    private func startEditing() {
+        let currentMins = Int(round(engine.targetDuration / 60.0))
+        inputMinutes = "\(currentMins)"
+        isEditing = true
     }
     
     private func submitCustomTime() {
