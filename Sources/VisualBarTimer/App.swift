@@ -119,7 +119,16 @@ final class MainWindowController {
             setupAndShow()
             return
         }
-        if win.isVisible && NSApp.isActive {
+        
+        // ウィジェットモードの場合: デスクトップ常駐のためshow()で手前にアクティブ化
+        if settings.windowPlacement == .desktopWidget {
+            show()
+            return
+        }
+        
+        // 通常・最前面モードの場合:
+        // 表示中なら隠す(hide)、非表示なら出す(show)
+        if win.isVisible {
             hide()
         } else {
             show()
