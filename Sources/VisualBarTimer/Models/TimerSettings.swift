@@ -2,6 +2,22 @@ import SwiftUI
 import Combine
 import AppKit
 
+enum WindowPlacement: String, CaseIterable, Identifiable, Codable {
+    case floating = "常に最前面 (Float on Top)"
+    case normal = "標準ウィンドウ (Normal)"
+    case desktopWidget = "デスクトップに貼り付け (壁紙最背面ウィジェット)"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .floating: return "pin.fill"
+        case .normal: return "macwindow"
+        case .desktopWidget: return "desktopcomputer"
+        }
+    }
+}
+
 enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
     case english = "m 表示 (⏱️ 45m)"
     case japanese = "分 表示 (⏱️ 45分)"
@@ -110,9 +126,22 @@ class TimerSettings: ObservableObject {
     @Published var mode: TimerMode {
         didSet { UserDefaults.standard.set(mode.rawValue, forKey: "saved_mode") }
     }
-    @Published var isAlwaysOnTop: Bool {
-        didSet { UserDefaults.standard.set(isAlwaysOnTop, forKey: "saved_always_on_top") }
+    
+    // ウィンドウ配置レイヤー (最前面 / 標準 / デスクトップ貼り付けウィジェット)
+    @Published var windowPlacement: WindowPlacement {
+        didSet {
+            UserDefaults.standard.set(windowPlacement.rawValue, forKey: "saved_window_placement")
+            isAlwaysOnTop = (windowPlacement == .floating)
+            MainWindowController.shared.updateWindowPlacement()
+        }
     }
+    
+    @Published var isAlwaysOnTop: Bool {
+        didSet {
+            UserDefaults.standard.set(isAlwaysOnTop, forKey: "saved_always_on_top")
+        }
+    }
+    
     @Published var isSoundEnabled: Bool {
         didSet { UserDefaults.standard.set(isSoundEnabled, forKey: "saved_sound_enabled") }
     }
@@ -215,10 +244,19 @@ class TimerSettings: ObservableObject {
             self.mode = .countdown
         }
         
-        if UserDefaults.standard.object(forKey: "saved_always_on_top") != nil {
-            self.isAlwaysOnTop = UserDefaults.standard.bool(forKey: "saved_always_on_top")
+        if let rawPlacement = UserDefaults.standard.string(forKey: "saved_window_placement"),
+           let placement = WindowPlacement(rawValue: rawPlacement) {
+            self.windowPlacement = placement
+            self.isAlwaysOnTop = (placement == .floating)
         } else {
-            self.isAlwaysOnTop = true
+            if UserDefaults.standard.object(forKey: "saved_always_on_top") != nil {
+                let onTop = UserDefaults.standard.bool(forKey: "saved_always_on_top")
+                self.isAlwaysOnTop = onTop
+                self.windowPlacement = onTop ? .floating : .normal
+            } else {
+                self.isAlwaysOnTop = true
+                self.windowPlacement = .floating
+            }
         }
         
         if UserDefaults.standard.object(forKey: "saved_sound_enabled") != nil {
@@ -234,6 +272,17 @@ class TimerSettings: ObservableObject {
         }
         
         updateDockPolicy()
+    }
+    
+    func cycleNextPlacement() {
+        switch windowPlacement {
+        case .floating:
+            windowPlacement = .normal
+        case .normal:
+            windowPlacement = .desktopWidget
+        case .desktopWidget:
+            windowPlacement = .floating
+        }
     }
     
     func updateDockPolicy() {

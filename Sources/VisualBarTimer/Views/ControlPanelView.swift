@@ -108,22 +108,19 @@ struct ControlPanelView: View {
                 
                 Spacer()
                 
-                // 最前面ピン留めトグル
+                // ウィンドウ配置モード切り替えボタン (最前面 / 標準 / デスクトップウィジェット)
                 Button(action: {
-                    settings.isAlwaysOnTop.toggle()
-                    if let window = NSApp.windows.first(where: { $0.title != "タイマー設定" }) {
-                        window.level = settings.isAlwaysOnTop ? .floating : .normal
-                    }
+                    settings.cycleNextPlacement()
                 }) {
-                    Image(systemName: settings.isAlwaysOnTop ? "pin.fill" : "pin.slash")
+                    Image(systemName: settings.windowPlacement.icon)
                         .font(.system(size: 11))
-                        .foregroundColor(settings.isAlwaysOnTop ? .yellow : .secondary)
+                        .foregroundColor(settings.windowPlacement == .floating ? .yellow : (settings.windowPlacement == .desktopWidget ? .cyan : .secondary))
                         .padding(5)
                         .background(Color.white.opacity(0.1))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .help(settings.isAlwaysOnTop ? "常に最前面: ON" : "常に最前面: OFF")
+                .help(settings.windowPlacement.rawValue)
                 
                 // 向き切り替え
                 Button(action: {
@@ -153,6 +150,23 @@ struct ControlPanelView: View {
                         StatsWindowManager.shared.show()
                     }) {
                         Label("本日の稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                    }
+                    
+                    Divider()
+                    
+                    // ウィンドウ配置サブメニュー
+                    Menu("ウィンドウ配置モード") {
+                        ForEach(WindowPlacement.allCases) { placement in
+                            Button(action: {
+                                settings.windowPlacement = placement
+                            }) {
+                                if settings.windowPlacement == placement {
+                                    Label(placement.rawValue, systemImage: "checkmark")
+                                } else {
+                                    Label(placement.rawValue, systemImage: placement.icon)
+                                }
+                            }
+                        }
                     }
                     
                     Divider()

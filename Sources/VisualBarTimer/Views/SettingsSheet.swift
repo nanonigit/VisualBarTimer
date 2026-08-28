@@ -232,13 +232,20 @@ struct SettingsSheet: View {
                     .padding(.leading, 12)
                     .padding(.vertical, 4)
                     
-                    Toggle(isOn: $settings.isAlwaysOnTop) {
-                        Text("常に最前面に表示")
-                            .font(.system(size: 13))
+                    // ウィンドウ配置モード
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("ウィンドウ配置・固定レイヤー")
+                            .font(.system(size: 13, weight: .medium))
+                        
+                        Picker("", selection: $settings.windowPlacement) {
+                            ForEach(WindowPlacement.allCases) { placement in
+                                Label(placement.rawValue, systemImage: placement.icon).tag(placement)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.radioGroup)
                     }
-                    .onChange(of: settings.isAlwaysOnTop) { isOn in
-                        MainWindowController.shared.window?.level = isOn ? .floating : .normal
-                    }
+                    .padding(.vertical, 2)
                 }
                 .toggleStyle(.switch)
                 

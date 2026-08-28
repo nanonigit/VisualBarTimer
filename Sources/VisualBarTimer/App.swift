@@ -73,6 +73,7 @@ final class MainWindowController {
         }
         
         self.window = newWindow
+        updateWindowPlacement()
         MenuBarManager.shared.setup(engine: engine, settings: settings)
         
         if settings.startHidden && settings.showInMenuBar {
@@ -80,6 +81,22 @@ final class MainWindowController {
         } else {
             newWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
+    func updateWindowPlacement() {
+        guard let win = window else { return }
+        switch settings.windowPlacement {
+        case .floating:
+            win.level = .floating
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        case .normal:
+            win.level = .normal
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        case .desktopWidget:
+            // 壁紙のすぐ上に固定し、全デスクトップ・Spacesで常に背景として表示
+            win.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopWindow)))
+            win.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         }
     }
     
