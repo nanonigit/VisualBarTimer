@@ -10,8 +10,8 @@ enum CalendarSyncStyle: String, CaseIterable, Identifiable, Codable {
 }
 
 enum WeekStartDay: String, CaseIterable, Identifiable, Codable {
-    case monday = "月曜始まり (月〜日の集計を日曜日に終日記録)"
     case sunday = "日曜始まり (日〜土の集計を土曜日に終日記録)"
+    case monday = "月曜始まり (月〜日の集計を日曜日に終日記録)"
     
     var id: String { rawValue }
 }
@@ -108,7 +108,7 @@ final class CalendarSyncManager: ObservableObject {
            let startDay = WeekStartDay(rawValue: rawWeekStart) {
             self.weekStartDay = startDay
         } else {
-            self.weekStartDay = .monday
+            self.weekStartDay = .sunday
         }
         
         if let rawStyle = UserDefaults.standard.string(forKey: "saved_calendar_sync_style"),
