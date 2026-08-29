@@ -132,8 +132,16 @@ class TimerEngine: ObservableObject {
         pausedRemainingTime = remainingTime
         pausedElapsedTime = elapsedTime
         
+        let now = Date()
+        if let last = lastRecordedTime {
+            let remainingStep = now.timeIntervalSince(last)
+            if remainingStep > 0 {
+                ActivityLogManager.shared.addRunningTime(seconds: remainingStep)
+            }
+        }
+        
         if let start = startTime {
-            let delta = Date().timeIntervalSince(start)
+            let delta = now.timeIntervalSince(start)
             ActivityLogManager.shared.onTimerStopped(mode: currentMode.rawValue, elapsedDelta: delta)
         }
         startTime = nil

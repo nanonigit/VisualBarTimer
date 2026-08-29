@@ -68,9 +68,9 @@ final class ActivityLogManager: ObservableObject {
     }
     
     var todayFormattedM: String {
-        let total = Int(todayTotalSeconds)
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
+        let roundedMinutes = Int(round(todayTotalSeconds / 60.0))
+        let hours = roundedMinutes / 60
+        let minutes = roundedMinutes % 60
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
@@ -79,9 +79,9 @@ final class ActivityLogManager: ObservableObject {
     }
     
     var todayFormattedMin: String {
-        let total = Int(todayTotalSeconds)
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
+        let roundedMinutes = Int(round(todayTotalSeconds / 60.0))
+        let hours = roundedMinutes / 60
+        let minutes = roundedMinutes % 60
         if hours > 0 {
             return "\(hours)時間\(minutes)分"
         } else {
@@ -90,9 +90,9 @@ final class ActivityLogManager: ObservableObject {
     }
     
     var todayFormattedNumeric: String {
-        let total = Int(todayTotalSeconds)
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
+        let roundedMinutes = Int(round(todayTotalSeconds / 60.0))
+        let hours = roundedMinutes / 60
+        let minutes = roundedMinutes % 60
         if hours > 0 {
             return String(format: "%d:%02d", hours, minutes)
         } else {
