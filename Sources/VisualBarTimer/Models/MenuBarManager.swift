@@ -135,7 +135,7 @@ final class MenuBarManager: NSObject {
         button.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
     }
     
-    /// リアルタイム円グラフ（プログレスサークル）の動的描画
+    /// リアルタイム円グラフ（デスクトップLEDバーと同じ赤・黄・緑の3色ゾーン ＆ 時計回り減衰）
     private func generatePieChartImage(progress: CGFloat, theme: TimerTheme, isRunning: Bool, centerText: String?) -> NSImage {
         let size = NSSize(width: 20, height: 20)
         let image = NSImage(size: size, flipped: false) { dstRect in
@@ -146,59 +146,59 @@ final class MenuBarManager: NSObject {
             let lineWidth: CGFloat = 2.0
             
             // 1. 背景消灯トラック (未点灯の薄いリング枠)
-            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.22).cgColor)
+            ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.20).cgColor)
             ctx.setLineWidth(lineWidth)
             ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: false)
             ctx.strokePath()
             
-            // 2. 残り時間の円弧（カラー連動）
+            // 2. LEDバーと同一のマルチカラー円弧描画 (緑 -> 黄 -> 赤 の順に時計回りで消灯)
             let clampedProgress = max(0, min(1.0, progress))
+            
+            // 角度変換ヘルパー: 比率 r (0.0=終了12時 ... 1.0=開始12時)
+            func angle(forRatio r: CGFloat) -> CGFloat {
+                return (CGFloat.pi / 2.0) - (CGFloat.pi * 2.0 * (1.0 - r))
+            }
+            
+            func drawSegment(from rStart: CGFloat, to rEnd: CGFloat, color: NSColor) {
+                guard rEnd > rStart else { return }
+                let aStart = angle(forRatio: rStart)
+                let aEnd = angle(forRatio: rEnd)
+                
+                ctx.setStrokeColor(color.cgColor)
+                ctx.setLineWidth(lineWidth)
+                ctx.setLineCap(.butt)
+                ctx.addArc(center: center, radius: radius, startAngle: aStart, endAngle: aEnd, clockwise: false)
+                ctx.strokePath()
+                
+                // 内側の薄い発光
+                let fillPath = CGMutablePath()
+                fillPath.move(to: center)
+                fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: aStart, endAngle: aEnd, clockwise: false)
+                fillPath.closeSubpath()
+                ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.12 : 0.22).cgColor)
+                ctx.addPath(fillPath)
+                ctx.fillPath()
+            }
+            
             if clampedProgress > 0.005 {
-                let color: NSColor
-                if theme == .monochrome {
-                    color = .white
-                } else {
-                    // LEDバーと同じ割合で色変化 (緑 -> 黄 -> 赤)
-                    if clampedProgress > 0.5 {
-                        color = NSColor(red: 0.2, green: 0.88, blue: 0.45, alpha: 1.0) // 鮮やかな緑
-                    } else if clampedProgress > 0.2 {
-                        color = NSColor(red: 1.0, green: 0.82, blue: 0.2, alpha: 1.0)  // 鮮やかな黄
-                    } else {
-                        color = NSColor(red: 1.0, green: 0.28, blue: 0.28, alpha: 1.0) // 鮮やかな赤
-                    }
+                let redColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.98, green: 0.22, blue: 0.22, alpha: 1.0)
+                let yellowColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.98, green: 0.76, blue: 0.12, alpha: 1.0)
+                let greenColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.18, green: 0.88, blue: 0.48, alpha: 1.0)
+                
+                // ① 赤ゾーン (0% 〜 20%): 最後に消えるゾーン (9時36分 〜 12時)
+                let redEnd = min(clampedProgress, 0.20)
+                drawSegment(from: 0.0, to: redEnd, color: redColor)
+                
+                // ② 黄ゾーン (20% 〜 50%): 中盤に消えるゾーン (6時 〜 9時36分)
+                if clampedProgress > 0.20 {
+                    let yellowEnd = min(clampedProgress, 0.50)
+                    drawSegment(from: 0.20, to: yellowEnd, color: yellowColor)
                 }
                 
-                if clampedProgress >= 0.995 {
-                    // 開始時・満タン (全周360°が鮮やかに点灯)
-                    ctx.setStrokeColor(color.cgColor)
-                    ctx.setLineWidth(lineWidth)
-                    ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: false)
-                    ctx.strokePath()
-                    
-                    // 内側の薄い発光塗りつぶし
-                    ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.15 : 0.28).cgColor)
-                    ctx.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: false)
-                    ctx.fillPath()
-                } else {
-                    // 時計回り減衰: 12時(1時方向)から順に消えていき、12時でちょうどフィニッシュ
-                    let elapsed = 1.0 - clampedProgress
-                    let startAngle: CGFloat = (CGFloat.pi / 2.0) - (CGFloat.pi * 2.0 * elapsed)
-                    let endAngle: CGFloat = CGFloat.pi / 2.0
-                    
-                    ctx.setStrokeColor(color.cgColor)
-                    ctx.setLineWidth(lineWidth)
-                    ctx.setLineCap(.round)
-                    ctx.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-                    ctx.strokePath()
-                    
-                    // 扇形の内側を薄く発光塗りつぶし
-                    let fillPath = CGMutablePath()
-                    fillPath.move(to: center)
-                    fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-                    fillPath.closeSubpath()
-                    ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.15 : 0.28).cgColor)
-                    ctx.addPath(fillPath)
-                    ctx.fillPath()
+                // ③ 緑ゾーン (50% 〜 100%): 最初に消えるゾーン (12時 〜 6時)
+                if clampedProgress > 0.50 {
+                    let greenEnd = min(clampedProgress, 1.0)
+                    drawSegment(from: 0.50, to: greenEnd, color: greenColor)
                 }
             }
             
