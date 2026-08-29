@@ -219,6 +219,24 @@ final class ActivityLogManager: ObservableObject {
         MenuBarManager.shared.updateTitle()
     }
     
+    /// 特定の日付の履歴を削除
+    func deleteHistory(for dateKey: String) {
+        dailyLogs.removeValue(forKey: dateKey)
+        if dateKey == todayKey {
+            todayTotalSeconds = 0
+        }
+        saveLogs()
+        MenuBarManager.shared.updateTitle()
+    }
+    
+    /// 全ての履歴ログを削除
+    func clearAllHistory() {
+        dailyLogs.removeAll()
+        todayTotalSeconds = 0
+        saveLogs()
+        MenuBarManager.shared.updateTitle()
+    }
+    
     private func updateTodayTotal() {
         todayTotalSeconds = dailyLogs[todayKey]?.totalSeconds ?? 0
     }

@@ -10,6 +10,9 @@ struct StatsWindowView: View {
     @State private var copiedMessage: String? = nil
     @State private var editingDateKey: String? = nil
     @State private var syncStatusMessage: String? = nil
+    @State private var deleteTargetDate: String? = nil
+    @State private var showDeleteDayConfirm: Bool = false
+    @State private var showClearAllConfirm: Bool = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -136,10 +139,29 @@ struct StatsWindowView: View {
             // 日別履歴リスト
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("日別履歴 (各日のカレンダー登録・修正)")
+                    Text("日別履歴 (各日のカレンダー登録・修正・削除)")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.secondary)
                     Spacer()
+                    if !logManager.dailyLogs.isEmpty {
+                        Button(action: {
+                            showClearAllConfirm = true
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 9))
+                                Text("全履歴を消去")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundColor(.red.opacity(0.85))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .help("すべてのタイマー稼働履歴を削除してリセットします")
+                    }
                 }
                 
                 ScrollView {
@@ -200,6 +222,21 @@ struct StatsWindowView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .help("この日の稼働時間を修正")
+                                    
+                                    // 削除ボタン
+                                    Button(action: {
+                                        deleteTargetDate = day.dateString
+                                        showDeleteDayConfirm = true
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.red.opacity(0.8))
+                                            .padding(4)
+                                            .background(Color.red.opacity(0.1))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("この日（\(day.dateString)）のログを削除")
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -293,6 +330,31 @@ struct StatsWindowView: View {
             EditDurationSheet(dateKey: item.dateKey) {
                 editingDateKey = nil
             }
+        }
+        .alert("この日の履歴を削除しますか？", isPresented: $showDeleteDayConfirm) {
+            Button("削除", role: .destructive) {
+                if let target = deleteTargetDate {
+                    logManager.deleteHistory(for: target)
+                    showToast("\(target) のログを削除しました")
+                }
+                deleteTargetDate = nil
+            }
+            Button("キャンセル", role: .cancel) {
+                deleteTargetDate = nil
+            }
+        } message: {
+            if let target = deleteTargetDate {
+                Text("\(target) の集中タイマー稼働ログとセッション履歴を完全に削除します。")
+            }
+        }
+        .alert("全履歴を消去しますか？", isPresented: $showClearAllConfirm) {
+            Button("すべて消去", role: .destructive) {
+                logManager.clearAllHistory()
+                showToast("すべての稼働履歴を削除しました")
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("これまでに記録されたすべてのタイマー稼働ログが完全に削除され、今日の稼働時間も0分にリセットされます。この操作は取り消せません。")
         }
     }
     
