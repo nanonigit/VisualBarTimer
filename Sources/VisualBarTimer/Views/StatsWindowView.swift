@@ -96,18 +96,36 @@ struct StatsWindowView: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        syncTodayToCalendar()
-                    }) {
-                        Label("カレンダーに書き込む", systemImage: "plus.circle.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.blue.opacity(0.85))
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    HStack(spacing: 6) {
+                        Button(action: {
+                            calendarSync.syncPreviousWeekSummaryIfNeeded(force: true) { success, msg in
+                                showToast(msg)
+                            }
+                        }) {
+                            Label("前週サマリー登録", systemImage: "chart.bar.doc.horizontal")
+                                .font(.system(size: 11, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.15))
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
+                        .help("前週の集中時間を集計し、終日イベントとして登録します")
+                        
+                        Button(action: {
+                            syncTodayToCalendar()
+                        }) {
+                            Label("今日の分を記録", systemImage: "plus.circle.fill")
+                                .font(.system(size: 11, weight: .bold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.85))
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 
                 if !calendarSync.availableCalendars.isEmpty {

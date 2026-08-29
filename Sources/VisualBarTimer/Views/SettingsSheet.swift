@@ -167,7 +167,7 @@ struct SettingsSheet: View {
                         }
                     }
                     
-                    // カレンダー自動同期
+                    // カレンダー自動同期 (日別)
                     Toggle(isOn: Binding<Bool>(
                         get: { calendarSync.autoSyncEnabled },
                         set: { calendarSync.autoSyncEnabled = $0 }
@@ -175,10 +175,45 @@ struct SettingsSheet: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("日が変わった時に前日の稼働時間をカレンダーに自動記録")
                                 .font(.system(size: 13))
-                            Text("日付変更時または翌朝起動時に、前日の総集中時間をGoogle/Macカレンダーへ自動登録します")
+                            Text("日付変更時または翌朝起動時に、前日の実績をカレンダーへ自動登録します")
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                         }
+                    }
+                    
+                    // カレンダー自動同期 (週間サマリー)
+                    Toggle(isOn: Binding<Bool>(
+                        get: { calendarSync.autoWeeklySummaryEnabled },
+                        set: { calendarSync.autoWeeklySummaryEnabled = $0 }
+                    )) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("週が変わった時に前週の集中サマリーを終日予定として自動記録")
+                                .font(.system(size: 13))
+                            Text("週明けに前週の総集中時間・セッション数・内訳をカレンダーの終日欄に登録します")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    if calendarSync.autoWeeklySummaryEnabled {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("週の始まり曜日")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            
+                            Picker("", selection: Binding<WeekStartDay>(
+                                get: { calendarSync.weekStartDay },
+                                set: { calendarSync.weekStartDay = $0 }
+                            )) {
+                                ForEach(WeekStartDay.allCases) { opt in
+                                    Text(opt.rawValue).tag(opt)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.radioGroup)
+                        }
+                        .padding(.leading, 12)
+                        .padding(.vertical, 2)
                     }
                     
                     // 書き込み先カレンダーの選択 & 権限リクエスト
