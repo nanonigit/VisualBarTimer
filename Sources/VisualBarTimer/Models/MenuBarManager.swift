@@ -94,13 +94,18 @@ final class MenuBarManager: NSObject {
         let iconName = isRunning ? "timer" : "stopwatch"
         
         switch settings.menuBarFormat {
+        case .pieChartWithCenterTotal:
+            button.image = generatePieChartImage(progress: progress, theme: theme, isRunning: isRunning, centerText: logManager.todayFormattedNumeric)
+            button.imagePosition = .imageOnly
+            button.title = ""
+            
         case .pieChartOnly:
-            button.image = generatePieChartImage(progress: progress, theme: theme, isRunning: isRunning)
+            button.image = generatePieChartImage(progress: progress, theme: theme, isRunning: isRunning, centerText: nil)
             button.imagePosition = .imageOnly
             button.title = ""
             
         case .pieChartWithRemaining:
-            button.image = generatePieChartImage(progress: progress, theme: theme, isRunning: isRunning)
+            button.image = generatePieChartImage(progress: progress, theme: theme, isRunning: isRunning, centerText: nil)
             button.imagePosition = .imageLeading
             let remSecs = Int(engine?.remainingTime ?? 0)
             let mins = remSecs / 60
@@ -131,14 +136,14 @@ final class MenuBarManager: NSObject {
     }
     
     /// リアルタイム円グラフ（プログレスサークル）の動的描画
-    private func generatePieChartImage(progress: CGFloat, theme: TimerTheme, isRunning: Bool) -> NSImage {
-        let size = NSSize(width: 18, height: 18)
+    private func generatePieChartImage(progress: CGFloat, theme: TimerTheme, isRunning: Bool, centerText: String?) -> NSImage {
+        let size = NSSize(width: 20, height: 20)
         let image = NSImage(size: size, flipped: false) { dstRect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             
             let center = CGPoint(x: dstRect.midX, y: dstRect.midY)
-            let radius: CGFloat = 7.0
-            let lineWidth: CGFloat = 2.4
+            let radius: CGFloat = 8.0
+            let lineWidth: CGFloat = 2.0
             
             // 1. 背景消灯トラック (未点灯の薄いリング枠)
             ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.22).cgColor)
@@ -171,7 +176,7 @@ final class MenuBarManager: NSObject {
                     ctx.strokePath()
                     
                     // 内側の薄い発光塗りつぶし
-                    ctx.setFillColor(color.withAlphaComponent(0.28).cgColor)
+                    ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.15 : 0.28).cgColor)
                     ctx.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: false)
                     ctx.fillPath()
                 } else {
@@ -191,11 +196,37 @@ final class MenuBarManager: NSObject {
                     fillPath.move(to: center)
                     fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: startAngle, endAngle: endAngle, clockwise: false)
                     fillPath.closeSubpath()
-                    ctx.setFillColor(color.withAlphaComponent(0.28).cgColor)
+                    ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.15 : 0.28).cgColor)
                     ctx.addPath(fillPath)
                     ctx.fillPath()
                 }
             }
+            
+            // 3. 円の中央に本日の累計分数を描画（指定時）
+            if let text = centerText, !text.isEmpty {
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.alignment = .center
+                
+                let fontSize: CGFloat = text.count > 2 ? 6.5 : 8.0
+                let font = NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .heavy)
+                
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: font,
+                    .foregroundColor: NSColor.white,
+                    .paragraphStyle: paragraphStyle
+                ]
+                
+                let attrString = NSAttributedString(string: text, attributes: attributes)
+                let textSize = attrString.size()
+                let textRect = CGRect(
+                    x: center.x - (textSize.width / 2.0),
+                    y: center.y - (textSize.height / 2.0) + 0.5,
+                    width: textSize.width,
+                    height: textSize.height
+                )
+                attrString.draw(in: textRect)
+            }
+            
             return true
         }
         
