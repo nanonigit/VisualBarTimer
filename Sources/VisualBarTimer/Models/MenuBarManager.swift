@@ -163,20 +163,21 @@ final class MenuBarManager: NSObject {
                     }
                 }
                 
-                // 12時の位置 (pi / 2) から時計回りに progress 分の円弧
-                let startAngle: CGFloat = CGFloat.pi / 2.0
-                let endAngle: CGFloat = startAngle - (CGFloat.pi * 2.0 * clampedProgress)
+                // 時計回り減衰: 12時(1時方向)から順に消えていき、12時でちょうどフィニッシュ
+                let elapsed = 1.0 - clampedProgress
+                let startAngle: CGFloat = (CGFloat.pi / 2.0) - (CGFloat.pi * 2.0 * elapsed)
+                let endAngle: CGFloat = CGFloat.pi / 2.0
                 
                 ctx.setStrokeColor(color.cgColor)
                 ctx.setLineWidth(lineWidth)
                 ctx.setLineCap(.round)
-                ctx.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+                ctx.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
                 ctx.strokePath()
                 
                 // 扇形の内側を薄く発光塗りつぶし
                 let fillPath = CGMutablePath()
                 fillPath.move(to: center)
-                fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+                fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: startAngle, endAngle: endAngle, clockwise: false)
                 fillPath.closeSubpath()
                 ctx.setFillColor(color.withAlphaComponent(0.28).cgColor)
                 ctx.addPath(fillPath)
