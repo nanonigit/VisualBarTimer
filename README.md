@@ -72,7 +72,7 @@
 * **Google & Apple Calendar Direct Sync (Daily & Weekly Summaries)**:
   * **Daily Auto Sync**: Automatically writes previous day's focus log to your selected calendar upon date change or wake from sleep.
   * **Weekly Summary Auto Sync**: Writes total weekly focus hours/sessions as an all-day event upon week transitions.
-  * **Configurable Week Start**: Choose **Monday-start** (Mon–Sun summary on Sunday) or **Sunday-start** (Sun–Sat summary on Saturday).
+  * **Configurable Week Start**: Choose **Sunday-start (Default)** (Sun–Sat summary on Saturday) or **Monday-start** (Mon–Sun summary on Sunday).
   * **Sync Styles**: Choose between individual actual session time slots (time log) or an all-day summary.
 * **History Management & Data Export**:
   * Daily history list with manual duration editing (`±15m`, custom minutes) and individual day deletion (🗑️) or clear all history.
@@ -132,7 +132,7 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
 * **Google & Apple Calendar 直接自動同期 (日別実績 ＆ 週間サマリー終日記録)**:
   * **日別自動同期**: 日付変更時や翌朝のスリープ復帰時に、前日の集中実績をGoogle/Macカレンダーへ自動登録。
   * **週間サマリー自動同期**: 週明けに前週1週間の総集中時間・セッション数・カテゴリ別内訳を終日予定としてカレンダーに自動記録。
-  * **週の始まり曜日設定**: **月曜始まり（デフォルト）**（月〜日の集計を日曜日に終日記録）または **日曜始まり**（日〜土の集計を土曜日に終日記録）を自由に選択可能。
+  * **週の始まり曜日設定**: **日曜始まり（デフォルト）**（日〜土の集計を土曜日に終日記録）または **月曜始まり**（月〜日の集計を日曜日に終日記録）を自由に選択可能。
   * **同期スタイル選択**: 実際に作業していた時間帯に個別記録する「タイムログ形式」または「終日サマリー形式」から選択可能。
 * **履歴管理 & データ書き出し**:
   * 過去の日別履歴リストから、時間の直接修正（`±15分`ボタンなど）、日別の個別削除（🗑️）、全履歴の一括消去が可能。
