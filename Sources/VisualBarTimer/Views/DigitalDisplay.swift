@@ -8,7 +8,8 @@ struct DigitalDisplay: View {
     @State private var isEditing: Bool = false
     @State private var inputMinutes: String = ""
     @FocusState private var isFieldFocused: Bool
-    @State private var showAddCategoryDialog: Bool = false
+    @State private var showCategorySheet: Bool = false
+    @State private var categoryToEdit: ActivityCategory? = nil
     
     var timeString: String {
         let total = (engine.currentMode == .countup) ? engine.elapsedTime : engine.remainingTime
@@ -67,8 +68,18 @@ struct DigitalDisplay: View {
                     
                     Divider()
                     
+                    if !categoryManager.currentCategory.isPreset {
+                        Button(action: {
+                            categoryToEdit = categoryManager.currentCategory
+                            showCategorySheet = true
+                        }) {
+                            Label("「\(categoryManager.currentCategory.name)」を編集...", systemImage: "pencil")
+                        }
+                    }
+                    
                     Button(action: {
-                        showAddCategoryDialog = true
+                        categoryToEdit = nil
+                        showCategorySheet = true
                     }) {
                         Label("新しいカテゴリを追加...", systemImage: "plus")
                     }
@@ -183,9 +194,10 @@ struct DigitalDisplay: View {
                 }
             }
         }
-        .sheet(isPresented: $showAddCategoryDialog) {
-            AddCategorySheet {
-                showAddCategoryDialog = false
+        .sheet(isPresented: $showCategorySheet) {
+            CategoryEditSheet(categoryToEdit: categoryToEdit) {
+                showCategorySheet = false
+                categoryToEdit = nil
             }
         }
     }
@@ -222,8 +234,9 @@ struct DigitalDisplay: View {
     }
 }
 
-// 新規カスタムカテゴリ追加シート
-struct AddCategorySheet: View {
+// カスタムカテゴリ追加・編集シート
+struct CategoryEditSheet: View {
+    var categoryToEdit: ActivityCategory? = nil
     var onDismiss: () -> Void
     
     @State private var selectedEmoji: String = "🎯"
@@ -232,32 +245,39 @@ struct AddCategorySheet: View {
     
     let emojiCandidates = ["🎯", "🇬🇧", "📊", "✍️", "🏋️", "☕", "🔬", "🗣️", "🛠️", "📚", "🎮", "🧘"]
     
+    var isEditing: Bool {
+        categoryToEdit != nil
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // 上部ヘッダー（上に十分なマージンを確保）
             HStack {
-                Text("新規カテゴリの追加")
-                    .font(.headline)
+                Text(isEditing ? "カテゴリの編集" : "新規カテゴリの追加")
+                    .font(.system(size: 15, weight: .bold))
                 Spacer()
                 Button("閉じる") {
                     onDismiss()
                 }
                 .keyboardShortcut(.cancelAction)
             }
+            .padding(.top, 4)
             
             Divider()
             
             Text("アイコン絵文字を選択:")
-                .font(.system(size: 11))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
             
-            HStack(spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                 ForEach(emojiCandidates, id: \.self) { emoji in
                     Button(action: {
                         selectedEmoji = emoji
                     }) {
                         Text(emoji)
                             .font(.system(size: 16))
-                            .padding(6)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                             .background(selectedEmoji == emoji ? Color.blue.opacity(0.3) : Color.white.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                             .overlay(
@@ -269,32 +289,47 @@ struct AddCategorySheet: View {
                 }
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("カテゴリ名:")
-                    .font(.system(size: 11))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
                 TextField("例: 英語学習、確定申告、ブログ", text: $categoryName)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13))
             }
             
-            Spacer()
+            Spacer(minLength: 12)
             
+            // 下部アクションバー（下に十分なマージンを確保）
             HStack {
                 Spacer()
                 Button("キャンセル") {
                     onDismiss()
                 }
-                Button("追加する") {
-                    categoryManager.addCustomCategory(icon: selectedEmoji, name: categoryName)
+                Button(isEditing ? "保存する" : "追加する") {
+                    let trimmed = categoryName.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty else { return }
+                    if let target = categoryToEdit {
+                        categoryManager.updateCustomCategory(id: target.id, icon: selectedEmoji, name: trimmed)
+                    } else {
+                        categoryManager.addCustomCategory(icon: selectedEmoji, name: trimmed)
+                    }
                     onDismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(categoryName.trimmingCharacters(in: .whitespaces).isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
+            .padding(.bottom, 6)
         }
-        .padding(20)
-        .frame(width: 360, height: 230)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .frame(width: 370, height: 320)
+        .onAppear {
+            if let cat = categoryToEdit {
+                selectedEmoji = cat.icon.isEmpty ? "🎯" : cat.icon
+                categoryName = cat.name
+            }
+        }
     }
 }

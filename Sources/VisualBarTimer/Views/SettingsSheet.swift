@@ -7,6 +7,9 @@ struct SettingsSheet: View {
     @ObservedObject var categoryManager = CategoryManager.shared
     var onClose: (() -> Void)? = nil
     
+    @State private var categoryToEdit: ActivityCategory? = nil
+    @State private var showCategoryEditSheet: Bool = false
+    
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
@@ -348,8 +351,22 @@ struct SettingsSheet: View {
                                 .controlSize(.mini)
                                 .help(isVisible ? "タイマーメニューに表示中（クリックで非表示）" : "タイマーメニューから非表示中（クリックで表示）")
                                 
-                                // カスタムカテゴリのみ削除ボタン
+                                // カスタムカテゴリの編集・削除ボタン
                                 if !cat.isPreset {
+                                    Button(action: {
+                                        categoryToEdit = cat
+                                        showCategoryEditSheet = true
+                                    }) {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.blue.opacity(0.85))
+                                            .padding(4)
+                                            .background(Color.blue.opacity(0.12))
+                                            .clipShape(Circle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("カテゴリ名・アイコンを編集")
+                                    
                                     Button(action: {
                                         categoryManager.deleteCustomCategory(id: cat.id)
                                     }) {
@@ -405,6 +422,12 @@ struct SettingsSheet: View {
         .frame(width: 480, height: 600)
         .onAppear {
             calendarSync.checkAuthorization()
+        }
+        .sheet(isPresented: $showCategoryEditSheet) {
+            CategoryEditSheet(categoryToEdit: categoryToEdit) {
+                showCategoryEditSheet = false
+                categoryToEdit = nil
+            }
         }
     }
 }

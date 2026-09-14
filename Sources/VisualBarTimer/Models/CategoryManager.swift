@@ -109,6 +109,14 @@ final class CategoryManager: ObservableObject {
         selectCategory(newCat)
     }
     
+    func updateCustomCategory(id: String, icon: String, name: String) {
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        if let idx = customCategories.firstIndex(where: { $0.id == id }) {
+            customCategories[idx].icon = icon.isEmpty ? "🏷️" : icon
+            customCategories[idx].name = name.trimmingCharacters(in: .whitespaces)
+        }
+    }
+    
     func deleteCustomCategory(id: String) {
         customCategories.removeAll(where: { $0.id == id })
         hiddenCategoryIds.remove(id)
