@@ -135,7 +135,7 @@ final class MenuBarManager: NSObject {
         button.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
     }
     
-    /// リアルタイム円グラフ（デスクトップLEDバーと同じ赤・黄・緑の3色ゾーン ＆ 時計回り減衰）
+    /// リアルタイム円グラフ（タイムタイマー方式: 12時から時計回りに緑が減る -> 黄が減る -> 赤が減って終了）
     private func generatePieChartImage(progress: CGFloat, theme: TimerTheme, isRunning: Bool, centerText: String?) -> NSImage {
         let size = NSSize(width: 20, height: 20)
         let image = NSImage(size: size, flipped: false) { dstRect in
@@ -151,54 +151,61 @@ final class MenuBarManager: NSObject {
             ctx.addArc(center: center, radius: radius, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: false)
             ctx.strokePath()
             
-            // 2. LEDバーと同一のマルチカラー円弧描画 (緑 -> 黄 -> 赤 の順に時計回りで消灯)
+            // 2. 時計回りマルチカラー残量円弧描画 (緑: 12時〜6時, 黄: 6時〜9時36分, 赤: 9時36分〜12時)
             let clampedProgress = max(0, min(1.0, progress))
-            
-            // 角度変換ヘルパー: 比率 r (0.0=終了12時 ... 1.0=開始12時)
-            func angle(forRatio r: CGFloat) -> CGFloat {
-                return (CGFloat.pi / 2.0) - (CGFloat.pi * 2.0 * (1.0 - r))
-            }
-            
-            func drawSegment(from rStart: CGFloat, to rEnd: CGFloat, color: NSColor) {
-                guard rEnd > rStart else { return }
-                let aStart = angle(forRatio: rStart)
-                let aEnd = angle(forRatio: rEnd)
-                
-                ctx.setStrokeColor(color.cgColor)
-                ctx.setLineWidth(lineWidth)
-                ctx.setLineCap(.butt)
-                ctx.addArc(center: center, radius: radius, startAngle: aStart, endAngle: aEnd, clockwise: false)
-                ctx.strokePath()
-                
-                // 内側の薄い発光
-                let fillPath = CGMutablePath()
-                fillPath.move(to: center)
-                fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: aStart, endAngle: aEnd, clockwise: false)
-                fillPath.closeSubpath()
-                ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.12 : 0.22).cgColor)
-                ctx.addPath(fillPath)
-                ctx.fillPath()
-            }
             
             if clampedProgress > 0.005 {
                 let redColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.98, green: 0.22, blue: 0.22, alpha: 1.0)
                 let yellowColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.98, green: 0.76, blue: 0.12, alpha: 1.0)
                 let greenColor = (theme == .monochrome) ? NSColor.white : NSColor(red: 0.18, green: 0.88, blue: 0.48, alpha: 1.0)
                 
-                // ① 赤ゾーン (0% 〜 20%): 最後に消えるゾーン (9時36分 〜 12時)
-                let redEnd = min(clampedProgress, 0.20)
-                drawSegment(from: 0.0, to: redEnd, color: redColor)
-                
-                // ② 黄ゾーン (20% 〜 50%): 中盤に消えるゾーン (6時 〜 9時36分)
-                if clampedProgress > 0.20 {
-                    let yellowEnd = min(clampedProgress, 0.50)
-                    drawSegment(from: 0.20, to: yellowEnd, color: yellowColor)
+                // 時計回りの角度変換: fraction (0.0 = 12時, 0.5 = 6時, 1.0 = 12時)
+                // Quartz座標系: 12時は pi/2, 時計回り(decreasing angle)に 2*pi*f を引く
+                func angle(forFraction f: CGFloat) -> CGFloat {
+                    return (CGFloat.pi / 2.0) - (CGFloat.pi * 2.0 * f)
                 }
                 
-                // ③ 緑ゾーン (50% 〜 100%): 最初に消えるゾーン (12時 〜 6時)
-                if clampedProgress > 0.50 {
-                    let greenEnd = min(clampedProgress, 1.0)
-                    drawSegment(from: 0.50, to: greenEnd, color: greenColor)
+                func drawSegment(from fStart: CGFloat, to fEnd: CGFloat, color: NSColor) {
+                    guard fEnd > fStart else { return }
+                    let aStart = angle(forFraction: fStart)
+                    let aEnd = angle(forFraction: fEnd)
+                    
+                    ctx.setStrokeColor(color.cgColor)
+                    ctx.setLineWidth(lineWidth)
+                    ctx.setLineCap(.butt)
+                    // CoreGraphics: clockwise: true は角度減少（時計回り）
+                    ctx.addArc(center: center, radius: radius, startAngle: aStart, endAngle: aEnd, clockwise: true)
+                    ctx.strokePath()
+                    
+                    // 内側の薄い発光
+                    let fillPath = CGMutablePath()
+                    fillPath.move(to: center)
+                    fillPath.addArc(center: center, radius: radius - lineWidth / 2.0, startAngle: aStart, endAngle: aEnd, clockwise: true)
+                    fillPath.closeSubpath()
+                    ctx.setFillColor(color.withAlphaComponent(centerText != nil ? 0.12 : 0.22).cgColor)
+                    ctx.addPath(fillPath)
+                    ctx.fillPath()
+                }
+                
+                // 経過分（消灯開始位置）
+                let elapsedFraction = 1.0 - clampedProgress
+                
+                // ① 緑ゾーン (0.0 〜 0.50): 12時 〜 6時 (最初に消える)
+                if elapsedFraction < 0.50 {
+                    let greenStart = max(0.0, elapsedFraction)
+                    drawSegment(from: greenStart, to: 0.50, color: greenColor)
+                }
+                
+                // ② 黄ゾーン (0.50 〜 0.80): 6時 〜 9時36分 (中盤に消える)
+                if elapsedFraction < 0.80 {
+                    let yellowStart = max(0.50, elapsedFraction)
+                    drawSegment(from: yellowStart, to: 0.80, color: yellowColor)
+                }
+                
+                // ③ 赤ゾーン (0.80 〜 1.00): 9時36分 〜 12時 (最後に消えて終了)
+                if elapsedFraction < 1.00 {
+                    let redStart = max(0.80, elapsedFraction)
+                    drawSegment(from: redStart, to: 1.00, color: redColor)
                 }
             }
             
