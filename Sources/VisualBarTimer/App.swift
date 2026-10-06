@@ -2,13 +2,28 @@ import SwiftUI
 import AppKit
 
 @main
-struct VisualBarTimerApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var body: some Scene {
-        Settings {
-            EmptyView()
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        // NSApplication.delegate is weak. Keep it alive for the entire run loop.
+        withExtendedLifetime(delegate) {
+            app.run()
         }
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MainWindowController.shared.setupAndShow()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        MainWindowController.shared.show()
+        return true
     }
 }
 
@@ -166,20 +181,5 @@ final class MainWindowController {
         win.setFrame(currentFrame, display: true, animate: animate)
         UserDefaults.standard.set(Double(currentFrame.origin.x), forKey: "saved_window_x")
         UserDefaults.standard.set(Double(currentFrame.origin.y), forKey: "saved_window_y")
-    }
-}
-
-class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        MainWindowController.shared.setupAndShow()
-    }
-    
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return false
-    }
-    
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        MainWindowController.shared.show()
-        return true
     }
 }

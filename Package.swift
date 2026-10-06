@@ -18,6 +18,10 @@ let package = Package(
             name: "VisualBarTimer",
             dependencies: [],
             path: "Sources/VisualBarTimer"
+        ),
+        .testTarget(
+            name: "VisualBarTimerTests",
+            dependencies: ["VisualBarTimer"]
         )
     ]
 )

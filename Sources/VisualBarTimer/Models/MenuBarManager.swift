@@ -47,7 +47,7 @@ final class MenuBarManager: NSObject {
             if statusItem == nil {
                 statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
                 setupStatusItemButton()
-                buildContextMenu()
+                updateContextMenu()
             }
             updateTitle()
         } else {
@@ -241,36 +241,37 @@ final class MenuBarManager: NSObject {
         return image
     }
     
-    private func buildContextMenu() {
+    func updateContextMenu() {
+        let l10n = settings?.l10n ?? L10n(language: .english)
         let menu = NSMenu()
         
-        let showItem = NSMenuItem(title: "タイマーを表示 / 最前面", action: #selector(showMainWindow), keyEquivalent: "t")
+        let showItem = NSMenuItem(title: l10n.menuBarShowTimer, action: #selector(showMainWindow), keyEquivalent: "t")
         showItem.target = self
         menu.addItem(showItem)
         
         menu.addItem(NSMenuItem.separator())
         
-        let toggleItem = NSMenuItem(title: "スタート / 一時停止", action: #selector(toggleTimer), keyEquivalent: " ")
+        let toggleItem = NSMenuItem(title: l10n.menuBarToggle, action: #selector(toggleTimer), keyEquivalent: " ")
         toggleItem.target = self
         menu.addItem(toggleItem)
         
-        let resetItem = NSMenuItem(title: "リセット", action: #selector(resetTimer), keyEquivalent: "r")
+        let resetItem = NSMenuItem(title: l10n.menuBarReset, action: #selector(resetTimer), keyEquivalent: "r")
         resetItem.target = self
         menu.addItem(resetItem)
         
         menu.addItem(NSMenuItem.separator())
         
-        let statsItem = NSMenuItem(title: "本日の稼働統計・ログ...", action: #selector(openStats), keyEquivalent: "s")
+        let statsItem = NSMenuItem(title: l10n.menuBarStats, action: #selector(openStats), keyEquivalent: "s")
         statsItem.target = self
         menu.addItem(statsItem)
         
-        let settingsItem = NSMenuItem(title: "設定...", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: l10n.menuBarSettings, action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "VisualBarTimer を終了", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: l10n.menuBarQuit, action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         

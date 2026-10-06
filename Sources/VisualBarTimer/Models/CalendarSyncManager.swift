@@ -7,6 +7,15 @@ enum CalendarSyncStyle: String, CaseIterable, Identifiable, Codable {
     case allDaySummary = "その日の終日予定として1つにまとめて記録"
     
     var id: String { rawValue }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.actualTimeSlots, .japanese): return "実際に動いていた時間帯にそれぞれ記録 (タイムログ)"
+        case (.actualTimeSlots, .english): return "Log each time slot individually"
+        case (.allDaySummary, .japanese): return "その日の終日予定として1つにまとめて記録"
+        case (.allDaySummary, .english): return "Single all-day summary event"
+        }
+    }
 }
 
 enum WeekStartDay: String, CaseIterable, Identifiable, Codable {
@@ -14,6 +23,15 @@ enum WeekStartDay: String, CaseIterable, Identifiable, Codable {
     case monday = "月曜始まり (月〜日の集計を日曜日に終日記録)"
     
     var id: String { rawValue }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.sunday, .japanese): return "日曜始まり (日〜土の集計を土曜日に終日記録)"
+        case (.sunday, .english): return "Sunday (Sun–Sat logged on Saturday)"
+        case (.monday, .japanese): return "月曜始まり (月〜日の集計を日曜日に終日記録)"
+        case (.monday, .english): return "Monday (Mon–Sun logged on Sunday)"
+        }
+    }
 }
 
 struct CalendarOption: Identifiable, Hashable {

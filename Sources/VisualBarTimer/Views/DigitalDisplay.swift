@@ -8,8 +8,7 @@ struct DigitalDisplay: View {
     @State private var isEditing: Bool = false
     @State private var inputMinutes: String = ""
     @FocusState private var isFieldFocused: Bool
-    @State private var showCategorySheet: Bool = false
-    @State private var categoryToEdit: ActivityCategory? = nil
+    @State private var categoryEditor: CategoryEditorRequest? = nil
     
     var timeString: String {
         let total = (engine.currentMode == .countup) ? engine.elapsedTime : engine.remainingTime
@@ -41,6 +40,9 @@ struct DigitalDisplay: View {
     }
     
     var body: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 // モードバッジ
@@ -59,9 +61,9 @@ struct DigitalDisplay: View {
                             categoryManager.selectCategory(cat)
                         }) {
                             if cat.id == categoryManager.selectedCategoryId {
-                                Label(cat.title, systemImage: "checkmark")
+                                Label(cat.localizedTitle(for: lang), systemImage: "checkmark")
                             } else {
-                                Text(cat.title)
+                                Text(cat.localizedTitle(for: lang))
                             }
                         }
                     }
@@ -70,22 +72,20 @@ struct DigitalDisplay: View {
                     
                     if !categoryManager.currentCategory.isPreset {
                         Button(action: {
-                            categoryToEdit = categoryManager.currentCategory
-                            showCategorySheet = true
+                            categoryEditor = CategoryEditorRequest(category: categoryManager.currentCategory)
                         }) {
-                            Label("「\(categoryManager.currentCategory.name)」を編集...", systemImage: "pencil")
+                            Label(l10n.editCategoryButton(name: categoryManager.currentCategory.name), systemImage: "pencil")
                         }
                     }
                     
                     Button(action: {
-                        categoryToEdit = nil
-                        showCategorySheet = true
+                        categoryEditor = CategoryEditorRequest(category: nil)
                     }) {
-                        Label("新しいカテゴリを追加...", systemImage: "plus")
+                        Label(l10n.addNewCategoryButton, systemImage: "plus")
                     }
                 } label: {
                     HStack(spacing: 3) {
-                        Text(categoryManager.currentCategory.title)
+                        Text(categoryManager.currentCategory.localizedTitle(for: lang))
                             .font(.system(size: 9, weight: .bold))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 7))
@@ -98,7 +98,7 @@ struct DigitalDisplay: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .help("作業カテゴリを切り替え (カレンダーの予定名に反映されます)")
+                .help(l10n.switchCategoryHelp)
                 
                 // 本日の累計稼働時間
                 Button(action: {
@@ -107,7 +107,7 @@ struct DigitalDisplay: View {
                     HStack(spacing: 3) {
                         Image(systemName: "chart.bar.fill")
                             .font(.system(size: 8))
-                        Text("今日: \(ActivityLogManager.shared.todayFormattedM)")
+                        Text("\(l10n.today): \(ActivityLogManager.shared.todayFormatted(for: lang))")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                     }
                     .foregroundColor(.white.opacity(0.75))
@@ -117,13 +117,13 @@ struct DigitalDisplay: View {
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help("クリックして本日の統計・履歴ログ・カレンダー同期を開く")
+                .help(l10n.openStatsHelp)
             }
             
             if isEditing {
                 // コンパクトなインライン編集バー（極小Miniモードでも絶対に溢れないスリム設計）
                 HStack(spacing: 3) {
-                    TextField("分", text: $inputMinutes)
+                    TextField(l10n.quickMinPlaceholder, text: $inputMinutes)
                         .textFieldStyle(.plain)
                         .font(.system(size: max(14, textSize - 2), weight: .heavy, design: .monospaced))
                         .foregroundColor(.white)
@@ -137,7 +137,7 @@ struct DigitalDisplay: View {
                             submitCustomTime()
                         }
                     
-                    Text("分")
+                    Text(l10n.minUnit)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.secondary)
                     
@@ -153,7 +153,7 @@ struct DigitalDisplay: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("確定 (Returnキー)")
+                    .help(l10n.confirmReturnHelp)
                     
                     // キャンセルボタン
                     Button(action: {
@@ -167,7 +167,7 @@ struct DigitalDisplay: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("キャンセル")
+                    .help(l10n.cancel)
                 }
                 .padding(.top, 1)
                 .onAppear {
@@ -182,7 +182,7 @@ struct DigitalDisplay: View {
                         .onTapGesture {
                             startEditing()
                         }
-                        .help("クリックして分数を直接入力")
+                        .help(l10n.editDurationHelp)
                     
                     Image(systemName: "pencil")
                         .font(.system(size: 9))
@@ -194,10 +194,9 @@ struct DigitalDisplay: View {
                 }
             }
         }
-        .sheet(isPresented: $showCategorySheet) {
-            CategoryEditSheet(categoryToEdit: categoryToEdit) {
-                showCategorySheet = false
-                categoryToEdit = nil
+        .sheet(item: $categoryEditor) { request in
+            CategoryEditSheet(categoryToEdit: request.category, language: settings.language) {
+                categoryEditor = nil
             }
         }
     }
@@ -234,9 +233,17 @@ struct DigitalDisplay: View {
     }
 }
 
+// Carry the presentation and its data together so the first sheet render has
+// the selected category, rather than capturing a stale nil value.
+struct CategoryEditorRequest: Identifiable {
+    let id = UUID()
+    let category: ActivityCategory?
+}
+
 // カスタムカテゴリ追加・編集シート
 struct CategoryEditSheet: View {
     var categoryToEdit: ActivityCategory? = nil
+    var language: AppLanguage = .english
     var onDismiss: () -> Void
     
     @State private var selectedEmoji: String = "🎯"
@@ -250,13 +257,15 @@ struct CategoryEditSheet: View {
     }
     
     var body: some View {
+        let l10n = L10n(language: language)
+
         VStack(alignment: .leading, spacing: 14) {
-            // 上部ヘッダー（上に十分なマージンを確保）
+            // 上部ヘッダー
             HStack {
-                Text(isEditing ? "カテゴリの編集" : "新規カテゴリの追加")
+                Text(isEditing ? l10n.editCategoryTitle : l10n.addCategoryTitle)
                     .font(.system(size: 15, weight: .bold))
                 Spacer()
-                Button("閉じる") {
+                Button(l10n.close) {
                     onDismiss()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -265,7 +274,7 @@ struct CategoryEditSheet: View {
             
             Divider()
             
-            Text("アイコン絵文字を選択:")
+            Text(l10n.selectEmojiPrompt)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.secondary)
             
@@ -290,23 +299,23 @@ struct CategoryEditSheet: View {
             }
             
             VStack(alignment: .leading, spacing: 6) {
-                Text("カテゴリ名:")
+                Text(l10n.categoryNamePrompt)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
-                TextField("例: 英語学習、確定申告、ブログ", text: $categoryName)
+                TextField(l10n.categoryPlaceholder, text: $categoryName)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13))
             }
             
             Spacer(minLength: 12)
             
-            // 下部アクションバー（下に十分なマージンを確保）
+            // 下部アクションバー
             HStack {
                 Spacer()
-                Button("キャンセル") {
+                Button(l10n.cancel) {
                     onDismiss()
                 }
-                Button(isEditing ? "保存する" : "追加する") {
+                Button(isEditing ? l10n.save : l10n.add) {
                     let trimmed = categoryName.trimmingCharacters(in: .whitespaces)
                     guard !trimmed.isEmpty else { return }
                     if let target = categoryToEdit {

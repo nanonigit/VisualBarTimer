@@ -7,6 +7,8 @@ struct MainTimerView: View {
     
     var body: some View {
         let dims = settings.size.windowDimensions(orientation: settings.orientation)
+        let l10n = settings.l10n
+        let lang = settings.language
         
         ZStack(alignment: .topLeading) {
             // 背景ドラッグ移動（アプリ本体どこでも掴んで移動可能）
@@ -43,7 +45,7 @@ struct MainTimerView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help(settings.closeAction == .quit ? "アプリを終了" : "メニューバーに隠す")
+                .help(settings.closeAction == .quit ? l10n.quitHelp : l10n.hideHelp)
                 
                 // サイズ切り替えトグルボタン (緑 / ⤢)
                 Button(action: {
@@ -59,7 +61,7 @@ struct MainTimerView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help("サイズを切り替え (現在: \(settings.size.rawValue))")
+                .help(l10n.cycleSizeHelp(current: settings.size.title(for: lang)))
             }
             .padding(.top, 8)
             .padding(.leading, 8)
@@ -114,7 +116,9 @@ struct MainTimerView: View {
     
     // MARK: - 極小モード (Mini) 横向きスリムバー
     private var miniHorizontalContent: some View {
-        VStack(spacing: 6) {
+        let l10n = settings.l10n
+
+        return VStack(spacing: 6) {
             HStack(spacing: 8) {
                 // 左上ボタン用の余白
                 Spacer().frame(width: 24)
@@ -159,18 +163,18 @@ struct MainTimerView: View {
                     Button(action: {
                         SettingsWindowManager.shared.show(engine: engine, settings: settings)
                     }) {
-                        Label("設定...", systemImage: "gearshape")
+                        Label(l10n.settingsMenu, systemImage: "gearshape")
                     }
                     Button(action: {
                         StatsWindowManager.shared.show()
                     }) {
-                        Label("稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                        Label(l10n.statsMenu, systemImage: "chart.bar.doc.horizontal")
                     }
                     Divider()
                     Button(action: {
                         NSApp.terminate(nil)
                     }) {
-                        Label("VisualBarTimer を終了", systemImage: "power")
+                        Label(l10n.quitApp, systemImage: "power")
                     }
                 } label: {
                     Image(systemName: "gearshape.fill")
@@ -242,7 +246,9 @@ struct MainTimerView: View {
     
     // 縦向き専用のコンパクトコントロール
     private var verticalControls: some View {
-        VStack(spacing: 6) {
+        let l10n = settings.l10n
+
+        return VStack(spacing: 6) {
             HStack(spacing: 4) {
                 Button(action: {
                     engine.toggle()
@@ -309,18 +315,18 @@ struct MainTimerView: View {
                     Button(action: {
                         SettingsWindowManager.shared.show(engine: engine, settings: settings)
                     }) {
-                        Label("設定...", systemImage: "gearshape")
+                        Label(l10n.settingsMenu, systemImage: "gearshape")
                     }
                     Button(action: {
                         StatsWindowManager.shared.show()
                     }) {
-                        Label("稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                        Label(l10n.statsMenu, systemImage: "chart.bar.doc.horizontal")
                     }
                     Divider()
                     Button(action: {
                         NSApp.terminate(nil)
                     }) {
-                        Label("VisualBarTimer を終了", systemImage: "power")
+                        Label(l10n.quitApp, systemImage: "power")
                     }
                 } label: {
                     Image(systemName: "gearshape.fill")

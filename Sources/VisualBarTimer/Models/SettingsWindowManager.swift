@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 final class SettingsWindowManager {
     static let shared = SettingsWindowManager()
     private var window: NSWindow?
@@ -9,6 +10,7 @@ final class SettingsWindowManager {
     
     func show(engine: TimerEngine, settings: TimerSettings) {
         if let existing = window {
+            existing.title = settings.l10n.settingsTitle
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -20,13 +22,13 @@ final class SettingsWindowManager {
         
         let hostingController = NSHostingController(rootView: contentView)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 620),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
         
-        newWindow.title = "タイマー設定"
+        newWindow.title = settings.l10n.settingsTitle
         newWindow.contentViewController = hostingController
         newWindow.isReleasedWhenClosed = false
         newWindow.center()
@@ -40,8 +42,12 @@ final class SettingsWindowManager {
         NSApp.activate(ignoringOtherApps: true)
     }
     
+    func updateTitle(settings: TimerSettings) {
+        window?.title = settings.l10n.settingsTitle
+    }
+
     func close() {
-        window?.orderOut(nil)
-        window = nil
+        // Match the title-bar close action and retain ownership for reopening.
+        window?.close()
     }
 }

@@ -5,6 +5,7 @@ import EventKit
 struct StatsWindowView: View {
     @ObservedObject var logManager = ActivityLogManager.shared
     @ObservedObject var calendarSync = CalendarSyncManager.shared
+    @ObservedObject var settings = MainWindowController.shared.settings
     var onClose: (() -> Void)? = nil
     
     @State private var copiedMessage: String? = nil
@@ -15,18 +16,21 @@ struct StatsWindowView: View {
     @State private var showClearAllConfirm: Bool = false
     
     var body: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+
         VStack(alignment: .leading, spacing: 16) {
             // ヘッダー
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("タイマー稼働ログ・統計")
+                    Text(l10n.statsHeaderTitle)
                         .font(.system(size: 16, weight: .bold))
-                    Text("日々の集中・タイマー稼働時間を記録・修正・カレンダー連携")
+                    Text(l10n.statsHeaderSubtitle)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                Button("閉じる") {
+                Button(l10n.close) {
                     onClose?()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -38,14 +42,14 @@ struct StatsWindowView: View {
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("本日の総タイマー稼働")
+                        Text(l10n.todayTotalFocus)
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.secondary)
                         Spacer()
                         Button(action: {
                             openEditor(for: logManager.todayKey)
                         }) {
-                            Label("時間を修正", systemImage: "pencil")
+                            Label(l10n.editTimeButton, systemImage: "pencil")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.cyan)
                                 .padding(.horizontal, 6)
@@ -56,7 +60,7 @@ struct StatsWindowView: View {
                         .buttonStyle(.plain)
                     }
                     
-                    Text(logManager.todayFormattedMin)
+                    Text(logManager.todayFormatted(for: lang))
                         .font(.system(size: 24, weight: .heavy, design: .monospaced))
                         .foregroundColor(.green)
                 }
@@ -66,10 +70,10 @@ struct StatsWindowView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("セッション回数")
+                    Text(l10n.sessionCount)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
-                    Text("\(logManager.dailyLogs[logManager.todayKey]?.sessionCount ?? 0) 回")
+                    Text(l10n.sessionCountDisplay(logManager.dailyLogs[logManager.todayKey]?.sessionCount ?? 0))
                         .font(.system(size: 24, weight: .heavy, design: .monospaced))
                         .foregroundColor(.cyan)
                 }
@@ -87,9 +91,9 @@ struct StatsWindowView: View {
                         .foregroundColor(.blue)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Google / Macカレンダーに今日の総時間を記録")
+                        Text(l10n.calendarBannerTitle)
                             .font(.system(size: 12, weight: .bold))
-                        Text("Google同期されているカレンダーに予定として自動登録されます")
+                        Text(l10n.calendarBannerSubtitle)
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
@@ -102,7 +106,7 @@ struct StatsWindowView: View {
                                 showToast(msg)
                             }
                         }) {
-                            Label("前週サマリー登録", systemImage: "chart.bar.doc.horizontal")
+                            Label(l10n.weeklySummaryRegisterButton, systemImage: "chart.bar.doc.horizontal")
                                 .font(.system(size: 11, weight: .semibold))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 6)
@@ -111,12 +115,12 @@ struct StatsWindowView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                         .buttonStyle(.plain)
-                        .help("前週の集中時間を集計し、終日イベントとして登録します")
+                        .help(l10n.weeklySummaryHelp)
                         
                         Button(action: {
                             syncTodayToCalendar()
                         }) {
-                            Label("今日の分を記録", systemImage: "plus.circle.fill")
+                            Label(l10n.recordTodayButton, systemImage: "plus.circle.fill")
                                 .font(.system(size: 11, weight: .bold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -130,7 +134,7 @@ struct StatsWindowView: View {
                 
                 if !calendarSync.availableCalendars.isEmpty {
                     HStack(spacing: 6) {
-                        Text("保存先:")
+                        Text(l10n.calendarTargetLabel)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.secondary)
                         
@@ -157,7 +161,7 @@ struct StatsWindowView: View {
             // 日別履歴リスト
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("日別履歴 (各日のカレンダー登録・修正・削除)")
+                    Text(l10n.dailyHistoryHeader)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.secondary)
                     Spacer()
@@ -168,7 +172,7 @@ struct StatsWindowView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "trash")
                                     .font(.system(size: 9))
-                                Text("全履歴を消去")
+                                Text(l10n.clearAllHistoryButton)
                                     .font(.system(size: 10, weight: .semibold))
                             }
                             .foregroundColor(.red.opacity(0.85))
@@ -178,7 +182,7 @@ struct StatsWindowView: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .help("すべてのタイマー稼働履歴を削除してリセットします")
+                        .help(l10n.clearAllHistoryHelp)
                     }
                 }
                 
@@ -186,7 +190,7 @@ struct StatsWindowView: View {
                     VStack(spacing: 6) {
                         let sortedDays = logManager.dailyLogs.values.sorted(by: { $0.dateString > $1.dateString })
                         if sortedDays.isEmpty {
-                            Text("まだ記録されたログはありません。タイマーを動かすと自動集計されます。")
+                            Text(l10n.noLogsMessage)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                                 .padding(.vertical, 20)
@@ -196,7 +200,7 @@ struct StatsWindowView: View {
                                     Text(day.dateString)
                                         .font(.system(size: 12, weight: .semibold, design: .monospaced))
                                     if day.dateString == logManager.todayKey {
-                                        Text("今日")
+                                        Text(l10n.today)
                                             .font(.system(size: 9, weight: .bold))
                                             .padding(.horizontal, 4)
                                             .padding(.vertical, 1)
@@ -205,10 +209,10 @@ struct StatsWindowView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 3))
                                     }
                                     Spacer()
-                                    Text("\(day.sessionCount)回")
+                                    Text("\(day.sessionCount) \(l10n.timesUnit)")
                                         .font(.system(size: 11))
                                         .foregroundColor(.secondary)
-                                    Text(day.formattedDuration)
+                                    Text(day.formattedDuration(for: lang))
                                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                                         .foregroundColor(.white)
                                         .frame(width: 80, alignment: .trailing)
@@ -225,7 +229,7 @@ struct StatsWindowView: View {
                                             .clipShape(Circle())
                                     }
                                     .buttonStyle(.plain)
-                                    .help("この日の稼働時間をカレンダーに登録")
+                                    .help(l10n.syncDayToCalendarHelp)
                                     
                                     // 修正ボタン
                                     Button(action: {
@@ -239,7 +243,7 @@ struct StatsWindowView: View {
                                             .clipShape(Circle())
                                     }
                                     .buttonStyle(.plain)
-                                    .help("この日の稼働時間を修正")
+                                    .help(l10n.editDayLogHelp)
                                     
                                     // 削除ボタン
                                     Button(action: {
@@ -254,7 +258,7 @@ struct StatsWindowView: View {
                                             .clipShape(Circle())
                                     }
                                     .buttonStyle(.plain)
-                                    .help("この日（\(day.dateString)）のログを削除")
+                                    .help(l10n.deleteDayLogHelp(date: day.dateString))
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -271,7 +275,7 @@ struct StatsWindowView: View {
             
             // エクスポート & 連携アクション
             VStack(alignment: .leading, spacing: 10) {
-                Text("ファイル書き出し & 外部連携")
+                Text(l10n.fileExportHeader)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.secondary)
                 
@@ -280,7 +284,7 @@ struct StatsWindowView: View {
                     Button(action: {
                         logManager.saveCSVToFile()
                     }) {
-                        Label("CSV書き出し", systemImage: "arrow.down.doc.fill")
+                        Label(l10n.exportCSVButton, systemImage: "arrow.down.doc.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -293,7 +297,7 @@ struct StatsWindowView: View {
                     Button(action: {
                         logManager.saveJSONToFile()
                     }) {
-                        Label("JSON書き出し", systemImage: "curlybraces")
+                        Label(l10n.exportJSONButton, systemImage: "curlybraces")
                             .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -306,9 +310,9 @@ struct StatsWindowView: View {
                     Button(action: {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(logManager.exportCSV(), forType: .string)
-                        showToast("CSVをコピーしました")
+                        showToast(l10n.csvCopiedToast)
                     }) {
-                        Label("CSVコピー", systemImage: "doc.on.doc")
+                        Label(l10n.copyCSVButton, systemImage: "doc.on.doc")
                             .font(.system(size: 11))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
@@ -321,7 +325,7 @@ struct StatsWindowView: View {
                     Button(action: {
                         logManager.openLogFolder()
                     }) {
-                        Label("保存フォルダを開く", systemImage: "folder")
+                        Label(l10n.openFolderButton, systemImage: "folder")
                             .font(.system(size: 11))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
@@ -345,34 +349,34 @@ struct StatsWindowView: View {
             get: { editingDateKey.map { IdentifiableDate(dateKey: $0) } },
             set: { editingDateKey = $0?.dateKey }
         )) { item in
-            EditDurationSheet(dateKey: item.dateKey) {
+            EditDurationSheet(dateKey: item.dateKey, language: lang) {
                 editingDateKey = nil
             }
         }
-        .alert("この日の履歴を削除しますか？", isPresented: $showDeleteDayConfirm) {
-            Button("削除", role: .destructive) {
+        .alert(l10n.deleteDayAlertTitle, isPresented: $showDeleteDayConfirm) {
+            Button(l10n.delete, role: .destructive) {
                 if let target = deleteTargetDate {
                     logManager.deleteHistory(for: target)
-                    showToast("\(target) のログを削除しました")
+                    showToast("\(target) deleted")
                 }
                 deleteTargetDate = nil
             }
-            Button("キャンセル", role: .cancel) {
+            Button(l10n.cancel, role: .cancel) {
                 deleteTargetDate = nil
             }
         } message: {
             if let target = deleteTargetDate {
-                Text("\(target) の集中タイマー稼働ログとセッション履歴を完全に削除します。")
+                Text(l10n.deleteDayAlertMessage(date: target))
             }
         }
-        .alert("全履歴を消去しますか？", isPresented: $showClearAllConfirm) {
-            Button("すべて消去", role: .destructive) {
+        .alert(l10n.clearAllAlertTitle, isPresented: $showClearAllConfirm) {
+            Button(l10n.clearAllConfirmButton, role: .destructive) {
                 logManager.clearAllHistory()
-                showToast("すべての稼働履歴を削除しました")
+                showToast("All history cleared")
             }
-            Button("キャンセル", role: .cancel) {}
+            Button(l10n.cancel, role: .cancel) {}
         } message: {
-            Text("これまでに記録されたすべてのタイマー稼働ログが完全に削除され、今日の稼働時間も0分にリセットされます。この操作は取り消せません。")
+            Text(l10n.clearAllAlertMessage)
         }
     }
     
@@ -408,18 +412,21 @@ struct IdentifiableDate: Identifiable {
 // 稼働時間編集シート
 struct EditDurationSheet: View {
     let dateKey: String
+    var language: AppLanguage = .english
     var onDismiss: () -> Void
     
     @State private var inputMinutes: String = ""
     @ObservedObject var logManager = ActivityLogManager.shared
     
     var body: some View {
+        let l10n = L10n(language: language)
+
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("稼働時間の修正: \(dateKey)")
+                Text(l10n.editDurationTitle(date: dateKey))
                     .font(.headline)
                 Spacer()
-                Button("閉じる") {
+                Button(l10n.close) {
                     onDismiss()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -427,26 +434,26 @@ struct EditDurationSheet: View {
             
             Divider()
             
-            Text("止め忘れや手動調整したい分数を直接入力してください：")
+            Text(l10n.editDurationSubtitle)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
             
             HStack(spacing: 8) {
-                TextField("分数", text: $inputMinutes)
+                TextField(l10n.minUnit, text: $inputMinutes)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 18, weight: .bold, design: .monospaced))
                     .frame(width: 100)
-                Text("分 に修正する")
+                Text(l10n.editDurationUnit)
                     .font(.system(size: 13, weight: .medium))
             }
             
             // クイック微調整ボタン
             HStack(spacing: 6) {
-                Text("微調整:")
+                Text(l10n.fineTuneLabel)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 ForEach([-30, -15, -5, 5, 15, 30], id: \.self) { delta in
-                    Button(delta > 0 ? "+\(delta)分" : "\(delta)分") {
+                    Button(delta > 0 ? "+\(delta)\(l10n.minUnit)" : "\(delta)\(l10n.minUnit)") {
                         adjustMinutes(by: delta)
                     }
                     .font(.system(size: 10))
@@ -457,10 +464,10 @@ struct EditDurationSheet: View {
             
             HStack {
                 Spacer()
-                Button("キャンセル") {
+                Button(l10n.cancel) {
                     onDismiss()
                 }
-                Button("保存する") {
+                Button(l10n.save) {
                     saveChanges()
                 }
                 .buttonStyle(.borderedProminent)

@@ -27,6 +27,25 @@ struct DayLog: Codable, Identifiable {
             return "\(minutes)分"
         }
     }
+
+    func formattedDuration(for lang: AppLanguage) -> String {
+        let roundedMinutes = Int(round(totalSeconds / 60.0))
+        let hours = roundedMinutes / 60
+        let minutes = roundedMinutes % 60
+        if lang == .japanese {
+            if hours > 0 {
+                return "\(hours)時間\(minutes)分"
+            } else {
+                return "\(minutes)分"
+            }
+        } else {
+            if hours > 0 {
+                return "\(hours)h \(minutes)m"
+            } else {
+                return "\(minutes)m"
+            }
+        }
+    }
 }
 
 @MainActor
@@ -65,6 +84,25 @@ final class ActivityLogManager: ObservableObject {
     
     var todayKey: String {
         Self.dateFormatter.string(from: Date())
+    }
+
+    func todayFormatted(for lang: AppLanguage) -> String {
+        let roundedMinutes = Int(round(todayTotalSeconds / 60.0))
+        let hours = roundedMinutes / 60
+        let minutes = roundedMinutes % 60
+        if lang == .japanese {
+            if hours > 0 {
+                return "\(hours)時間\(minutes)分"
+            } else {
+                return "\(minutes)分"
+            }
+        } else {
+            if hours > 0 {
+                return "\(hours)h \(minutes)m"
+            } else {
+                return "\(minutes)m"
+            }
+        }
     }
     
     var todayFormattedM: String {

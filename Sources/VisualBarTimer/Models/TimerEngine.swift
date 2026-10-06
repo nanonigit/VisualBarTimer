@@ -102,6 +102,9 @@ class TimerEngine: ObservableObject {
     }
     
     private func requestNotificationPermission() {
+        // UserNotifications requires an application bundle; SwiftPM tests and
+        // unbundled development binaries otherwise raise an Objective-C exception.
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
     
@@ -283,13 +286,18 @@ class TimerEngine: ObservableObject {
     }
     
     private func sendNotification() {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+        let rawLang = UserDefaults.standard.string(forKey: "saved_language")
+        let lang = rawLang.flatMap { AppLanguage(rawValue: $0) } ?? .english
+        let l10n = L10n(language: lang)
+
         let content = UNMutableNotificationContent()
         if currentMode == .pomodoro {
-            content.title = pomodoroPhase == .work ? "休憩時間終了！" : "集中タイム終了！"
-            content.body = pomodoroPhase == .work ? "次の作業セッションを始めましょう。" : "5分間の休憩を取りましょう。"
+            content.title = pomodoroPhase == .work ? l10n.notifBreakFinishedTitle : l10n.notifFocusFinishedTitle
+            content.body = pomodoroPhase == .work ? l10n.notifBreakFinishedBody : l10n.notifFocusFinishedBody
         } else {
-            content.title = "タイマー終了"
-            content.body = "\(formatTime(targetDuration))が経過しました。"
+            content.title = l10n.notifTimerFinishedTitle
+            content.body = l10n.notifTimerFinishedBody(time: formatTime(targetDuration, for: lang))
         }
         content.sound = .default
         
@@ -297,15 +305,25 @@ class TimerEngine: ObservableObject {
         UNUserNotificationCenter.current().add(request)
     }
     
-    private func formatTime(_ interval: TimeInterval) -> String {
+    private func formatTime(_ interval: TimeInterval, for lang: AppLanguage) -> String {
         let minutes = Int(interval) / 60
         let seconds = Int(interval) % 60
-        if minutes > 0 && seconds == 0 {
-            return "\(minutes)分"
-        } else if minutes > 0 {
-            return "\(minutes)分\(seconds)秒"
+        if lang == .japanese {
+            if minutes > 0 && seconds == 0 {
+                return "\(minutes)分"
+            } else if minutes > 0 {
+                return "\(minutes)分\(seconds)秒"
+            } else {
+                return "\(seconds)秒"
+            }
         } else {
-            return "\(seconds)秒"
+            if minutes > 0 && seconds == 0 {
+                return "\(minutes) min"
+            } else if minutes > 0 {
+                return "\(minutes)m \(seconds)s"
+            } else {
+                return "\(seconds)s"
+            }
         }
     }
 }

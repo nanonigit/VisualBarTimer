@@ -13,6 +13,37 @@ struct ActivityCategory: Codable, Identifiable, Hashable {
         }
         return "\(icon) \(name)"
     }
+
+    func localizedName(for lang: AppLanguage) -> String {
+        if isPreset {
+            switch (id, lang) {
+            case ("preset_work", .english): return "Work"
+            case ("preset_work", .japanese): return "仕事"
+            case ("preset_study", .english): return "Study"
+            case ("preset_study", .japanese): return "勉強"
+            case ("preset_dev", .english): return "Development"
+            case ("preset_dev", .japanese): return "開発"
+            case ("preset_reading", .english): return "Reading"
+            case ("preset_reading", .japanese): return "読書"
+            case ("preset_creative", .english): return "Creative"
+            case ("preset_creative", .japanese): return "創作"
+            case ("preset_break", .english): return "Break"
+            case ("preset_break", .japanese): return "休憩"
+            case ("preset_focus", .english): return "Deep Work"
+            case ("preset_focus", .japanese): return "集中作業"
+            default: return name
+            }
+        }
+        return name
+    }
+
+    func localizedTitle(for lang: AppLanguage) -> String {
+        let n = localizedName(for: lang)
+        if icon.isEmpty {
+            return n
+        }
+        return "\(icon) \(n)"
+    }
 }
 
 @MainActor

@@ -7,426 +7,536 @@ struct SettingsSheet: View {
     @ObservedObject var categoryManager = CategoryManager.shared
     var onClose: (() -> Void)? = nil
     
-    @State private var categoryToEdit: ActivityCategory? = nil
-    @State private var showCategoryEditSheet: Bool = false
+    @State private var categoryEditor: CategoryEditorRequest? = nil
     
+    @State private var selectedSection: SettingsSection = .timer
+
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
-                // タイトル
-                HStack {
-                    Text("タイマー設定")
-                        .font(.system(size: 16, weight: .bold))
-                    Spacer()
-                    Button("閉じる") {
-                        onClose?()
-                    }
+        VStack(spacing: 0) {
+            HStack {
+                Text(settings.l10n.settingsTitle)
+                    .font(.system(size: 16, weight: .bold))
+                Spacer()
+                Button(settings.l10n.close) { onClose?() }
                     .keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+
+            Picker(settings.l10n.settingsSectionLabel, selection: $selectedSection) {
+                ForEach(SettingsSection.allCases) { section in
+                    Text(section.title(for: settings.language)).tag(section)
                 }
-                
-                Divider()
-                
-                // タイマーモード
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("タイマーモード")
-                        .font(.system(size: 12, weight: .semibold))
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+
+            Divider()
+
+            ScrollView(.vertical, showsIndicators: true) {
+                Group {
+                    switch selectedSection {
+                    case .timer: timerSection
+                    case .app: appSection
+                    case .calendar: calendarSection
+                    case .categories: categoriesSection
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+                .background(AlwaysShowVerticalScrollBar())
+            }
+            .id(selectedSection)
+            .scrollIndicators(.visible)
+        }
+        .frame(width: 480, height: 620)
+        .onAppear { calendarSync.checkAuthorization() }
+        .sheet(item: $categoryEditor) { request in
+            CategoryEditSheet(categoryToEdit: request.category, language: settings.language) {
+                categoryEditor = nil
+            }
+        }
+    }
+
+    private var timerSection: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+        return VStack(alignment: .leading, spacing: 18) {
+            // 言語設定 (Language)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.languageSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $settings.language) {
+                    ForEach(AppLanguage.allCases) { langItem in
+                        Text(langItem.displayName).tag(langItem)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+
+            Divider()
+
+            // タイマーモード
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.timerModeSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $settings.mode) {
+                    ForEach(TimerMode.allCases) { mode in
+                        Text(mode.title(for: lang)).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .onChange(of: settings.mode) { newMode in
+                    engine.currentMode = newMode
+                }
+            }
+
+            // バーの向き
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.barOrientationSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $settings.orientation) {
+                    ForEach(TimerOrientation.allCases) { orient in
+                        Text(orient.title(for: lang)).tag(orient)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+
+            // カラーテーマ
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.colorThemeSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $settings.theme) {
+                    ForEach(TimerTheme.allCases) { theme in
+                        Text(theme.title(for: lang)).tag(theme)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+
+            // ウィンドウサイズ
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.windowSizeSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $settings.size) {
+                    ForEach(TimerSize.allCases) { size in
+                        Text(size.title(for: lang)).tag(size)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+            }
+
+            Divider()
+
+            // サウンド・通知
+            VStack(alignment: .leading, spacing: 8) {
+                Text(l10n.notificationsSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                Toggle(isOn: $settings.isSoundEnabled) {
+                    Text(l10n.playAlarmSound)
+                        .font(.system(size: 13))
+                }
+
+                Toggle(isOn: $settings.isFlashEnabled) {
+                    Text(l10n.flashBarOnFinish)
+                        .font(.system(size: 13))
+                }
+            }
+            .toggleStyle(.switch)
+
+            Divider()
+        }
+        .toggleStyle(.switch)
+    }
+
+    private var appSection: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+        return VStack(alignment: .leading, spacing: 18) {
+            // ウィンドウ & メニューバー・Dock設定
+            VStack(alignment: .leading, spacing: 10) {
+                Text(l10n.windowAndMenuBarSection)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                // ✕ボタンの動作
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(l10n.closeActionHeader)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
-                    Picker("", selection: $settings.mode) {
-                        ForEach(TimerMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                    Picker("", selection: $settings.closeAction) {
+                        ForEach(CloseAction.allCases) { action in
+                            Text(action.title(for: lang)).tag(action)
                         }
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .onChange(of: settings.mode) { newMode in
-                        engine.currentMode = newMode
+                    .pickerStyle(.radioGroup)
+                }
+                .padding(.bottom, 4)
+
+                Toggle(isOn: $settings.showInMenuBar) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(l10n.showInMenuBar)
+                            .font(.system(size: 13))
+                        Text(l10n.showInMenuBarDesc)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
                     }
                 }
-                
-                // バーの向き
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("バーの向き")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    Picker("", selection: $settings.orientation) {
-                        ForEach(TimerOrientation.allCases) { orient in
-                            Text(orient.rawValue).tag(orient)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                }
-                
-                // カラーテーマ
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("カラーテーマ")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    Picker("", selection: $settings.theme) {
-                        ForEach(TimerTheme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                }
-                
-                // ウィンドウサイズ
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("ウィンドウサイズ")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    Picker("", selection: $settings.size) {
-                        ForEach(TimerSize.allCases) { size in
-                            Text(size.rawValue).tag(size)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                }
-                
-                Divider()
-                
-                // ウィンドウ & メニューバー・Dock設定
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("ウィンドウ・Dock・メニューバー")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    
-                    // ✕ボタンの動作
+
+                if settings.showInMenuBar {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("左上「✕」ボタンを押したときの動作")
+                        Text(l10n.menuBarFormatHeader)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
-                        Picker("", selection: $settings.closeAction) {
-                            ForEach(CloseAction.allCases) { action in
-                                Text(action.rawValue).tag(action)
+                        Picker("", selection: $settings.menuBarFormat) {
+                            ForEach(MenuBarDisplayFormat.allCases) { fmt in
+                                Text(fmt.title(for: lang)).tag(fmt)
                             }
                         }
                         .labelsHidden()
                         .pickerStyle(.radioGroup)
-                    }
-                    .padding(.bottom, 4)
-                    
-                    Toggle(isOn: $settings.showInMenuBar) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("メニューバーにアイコンを表示")
-                                .font(.system(size: 13))
-                            Text("クリックでウィンドウの再表示やスタート/停止が可能")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    if settings.showInMenuBar {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("メニューバーの分数表示スタイル")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            Picker("", selection: $settings.menuBarFormat) {
-                                ForEach(MenuBarDisplayFormat.allCases) { fmt in
-                                    Text(fmt.rawValue).tag(fmt)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.radioGroup)
-                        }
-                        .padding(.leading, 12)
-                        .padding(.vertical, 2)
-                    }
-                    
-                    Toggle(isOn: $settings.showInDock) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Dockにアプリアイコンを表示")
-                                .font(.system(size: 13))
-                            Text("OFFにするとメニューバー常駐専用アプリになります")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // ログイン時自動起動
-                    Toggle(isOn: Binding<Bool>(
-                        get: { LaunchAtLoginManager.shared.isEnabled },
-                        set: { LaunchAtLoginManager.shared.setEnabled($0) }
-                    )) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Macログイン時に自動起動")
-                                .font(.system(size: 13))
-                            Text("Macの起動・ログインと同時にタイマーを起動します")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // 起動時にウィンドウを隠す
-                    Toggle(isOn: $settings.startHidden) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("起動時にウィンドウを隠す（メニューバーのみで起動）")
-                                .font(.system(size: 13))
-                            Text("起動時に画面を邪魔せず、メニューバー常駐として静かに起動します")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // カレンダー自動同期 (日別)
-                    Toggle(isOn: Binding<Bool>(
-                        get: { calendarSync.autoSyncEnabled },
-                        set: { calendarSync.autoSyncEnabled = $0 }
-                    )) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("日が変わった時に前日の稼働時間をカレンダーに自動記録")
-                                .font(.system(size: 13))
-                            Text("日付変更時または翌朝起動時に、前日の実績をカレンダーへ自動登録します")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // カレンダー自動同期 (週間サマリー)
-                    Toggle(isOn: Binding<Bool>(
-                        get: { calendarSync.autoWeeklySummaryEnabled },
-                        set: { calendarSync.autoWeeklySummaryEnabled = $0 }
-                    )) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("週が変わった時に前週の集中サマリーを終日予定として自動記録")
-                                .font(.system(size: 13))
-                            Text("週明けに前週の総集中時間・セッション数・内訳をカレンダーの終日欄に登録します")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    if calendarSync.autoWeeklySummaryEnabled {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("週の始まり曜日")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            
-                            Picker("", selection: Binding<WeekStartDay>(
-                                get: { calendarSync.weekStartDay },
-                                set: { calendarSync.weekStartDay = $0 }
-                            )) {
-                                ForEach(WeekStartDay.allCases) { opt in
-                                    Text(opt.rawValue).tag(opt)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.radioGroup)
-                        }
-                        .padding(.leading, 12)
-                        .padding(.vertical, 2)
-                    }
-                    
-                    // 書き込み先カレンダーの選択 & 権限リクエスト
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("書き込み先カレンダー")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        
-                        if calendarSync.isAuthorized && !calendarSync.availableCalendars.isEmpty {
-                            Picker("", selection: $calendarSync.selectedCalendarId) {
-                                ForEach(calendarSync.availableCalendars, id: \.id) { option in
-                                    Text(option.displayName).tag(option.id)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            
-                            // 登録スタイル
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("カレンダー記録スタイル")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                                
-                                Picker("", selection: $calendarSync.syncStyle) {
-                                    ForEach(CalendarSyncStyle.allCases) { style in
-                                        Text(style.rawValue).tag(style)
-                                    }
-                                }
-                                .labelsHidden()
-                                .pickerStyle(.radioGroup)
-                            }
-                            .padding(.top, 4)
-                        } else {
-                            Button(action: {
-                                calendarSync.requestAccess()
-                            }) {
-                                HStack {
-                                    Image(systemName: "calendar.badge.plus")
-                                    Text("カレンダーへのアクセスを許可して一覧を読み込む")
-                                }
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
-                            .buttonStyle(.plain)
-                        }
                     }
                     .padding(.leading, 12)
-                    .padding(.vertical, 4)
-                    
-                    // ウィンドウ配置モード
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("ウィンドウ配置・固定レイヤー")
-                            .font(.system(size: 13, weight: .medium))
-                        
-                        Picker("", selection: $settings.windowPlacement) {
-                            ForEach(WindowPlacement.allCases) { placement in
-                                Label(placement.rawValue, systemImage: placement.icon).tag(placement)
+                    .padding(.vertical, 2)
+                }
+
+                Toggle(isOn: $settings.showInDock) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(l10n.showInDock)
+                            .font(.system(size: 13))
+                        Text(l10n.showInDockDesc)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // ログイン時自動起動
+                Toggle(isOn: Binding<Bool>(
+                    get: { LaunchAtLoginManager.shared.isEnabled },
+                    set: { LaunchAtLoginManager.shared.setEnabled($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(l10n.launchAtLogin)
+                            .font(.system(size: 13))
+                        Text(l10n.launchAtLoginDesc)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // 起動時にウィンドウを隠す
+                Toggle(isOn: $settings.startHidden) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(l10n.startHidden)
+                            .font(.system(size: 13))
+                        Text(l10n.startHiddenDesc)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // ウィンドウ配置モード
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(l10n.windowPlacementHeader)
+                        .font(.system(size: 13, weight: .medium))
+
+                    Picker("", selection: $settings.windowPlacement) {
+                        ForEach(WindowPlacement.allCases) { placement in
+                            Label(placement.title(for: lang), systemImage: placement.icon).tag(placement)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.radioGroup)
+                }
+                .padding(.vertical, 2)
+            }
+            .toggleStyle(.switch)
+
+            Divider()
+        }
+        .toggleStyle(.switch)
+    }
+
+    private var calendarSection: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+        return VStack(alignment: .leading, spacing: 18) {
+            // カレンダー自動同期 (日別)
+            Toggle(isOn: Binding<Bool>(
+                get: { calendarSync.autoSyncEnabled },
+                set: { calendarSync.autoSyncEnabled = $0 }
+            )) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(l10n.calendarSyncDaily)
+                        .font(.system(size: 13))
+                    Text(l10n.calendarSyncDailyDesc)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // カレンダー自動同期 (週間サマリー)
+            Toggle(isOn: Binding<Bool>(
+                get: { calendarSync.autoWeeklySummaryEnabled },
+                set: { calendarSync.autoWeeklySummaryEnabled = $0 }
+            )) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(l10n.calendarSyncWeekly)
+                        .font(.system(size: 13))
+                    Text(l10n.calendarSyncWeeklyDesc)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if calendarSync.autoWeeklySummaryEnabled {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(l10n.weekStartDayHeader)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+
+                    Picker("", selection: Binding<WeekStartDay>(
+                        get: { calendarSync.weekStartDay },
+                        set: { calendarSync.weekStartDay = $0 }
+                    )) {
+                        ForEach(WeekStartDay.allCases) { opt in
+                            Text(opt.title(for: lang)).tag(opt)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.radioGroup)
+                }
+                .padding(.leading, 12)
+                .padding(.vertical, 2)
+            }
+
+            // 書き込み先カレンダーの選択 & 権限リクエスト
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.targetCalendarHeader)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                if calendarSync.isAuthorized && !calendarSync.availableCalendars.isEmpty {
+                    Picker("", selection: $calendarSync.selectedCalendarId) {
+                        ForEach(calendarSync.availableCalendars, id: \.id) { option in
+                            Text(option.displayName).tag(option.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+
+                    // 登録スタイル
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(l10n.calendarSyncStyleHeader)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+
+                        Picker("", selection: $calendarSync.syncStyle) {
+                            ForEach(CalendarSyncStyle.allCases) { style in
+                                Text(style.title(for: lang)).tag(style)
                             }
                         }
                         .labelsHidden()
                         .pickerStyle(.radioGroup)
                     }
-                    .padding(.vertical, 2)
-                }
-                .toggleStyle(.switch)
-                
-                Divider()
-                
-                // サウンド・通知
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("通知 & アラーム")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    
-                    Toggle(isOn: $settings.isSoundEnabled) {
-                        Text("アラームサウンドを鳴らす")
-                            .font(.system(size: 13))
-                    }
-                    
-                    Toggle(isOn: $settings.isFlashEnabled) {
-                        Text("終了時にバーを点滅")
-                            .font(.system(size: 13))
-                    }
-                }
-                .toggleStyle(.switch)
-                
-                Divider()
-                
-                // 作業カテゴリ管理
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("作業カテゴリ管理 (カレンダー予定名)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("スイッチOFFでタイマーメニューから隠せます")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.8))
-                    }
-                    
-                    // カテゴリ一覧
-                    VStack(spacing: 4) {
-                        ForEach(categoryManager.allCategories) { cat in
-                            let isVisible = !categoryManager.isHidden(cat)
-                            HStack {
-                                Text(cat.title)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(isVisible ? .white : .secondary.opacity(0.6))
-                                
-                                if cat.isPreset {
-                                    Text("プリセット")
-                                        .font(.system(size: 9))
-                                        .foregroundColor(.secondary.opacity(0.7))
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(Color.white.opacity(0.06))
-                                        .clipShape(Capsule())
-                                }
-                                
-                                Spacer()
-                                
-                                // 表示 / 非表示 トグルスイッチ
-                                Toggle("", isOn: Binding<Bool>(
-                                    get: { !categoryManager.isHidden(cat) },
-                                    set: { _ in categoryManager.toggleVisibility(for: cat) }
-                                ))
-                                .toggleStyle(.switch)
-                                .controlSize(.mini)
-                                .help(isVisible ? "タイマーメニューに表示中（クリックで非表示）" : "タイマーメニューから非表示中（クリックで表示）")
-                                
-                                // カスタムカテゴリの編集・削除ボタン
-                                if !cat.isPreset {
-                                    Button(action: {
-                                        categoryToEdit = cat
-                                        showCategoryEditSheet = true
-                                    }) {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.blue.opacity(0.85))
-                                            .padding(4)
-                                            .background(Color.blue.opacity(0.12))
-                                            .clipShape(Circle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("カテゴリ名・アイコンを編集")
-                                    
-                                    Button(action: {
-                                        categoryManager.deleteCustomCategory(id: cat.id)
-                                    }) {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.red.opacity(0.8))
-                                            .padding(4)
-                                            .background(Color.red.opacity(0.12))
-                                            .clipShape(Circle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("このカスタムカテゴリを完全に削除")
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(isVisible ? 0.05 : 0.02))
-                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                        }
-                    }
-                }
-                
-                Divider()
-                
-                // 稼働ログ・統計
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("タイマー稼働ログ・外部連携")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    
+                    .padding(.top, 4)
+                } else {
                     Button(action: {
-                        StatsWindowManager.shared.show()
+                        calendarSync.requestAccess()
                     }) {
                         HStack {
-                            Label("稼働統計・CSV/JSONエクスポート", systemImage: "chart.bar.doc.horizontal")
-                                .font(.system(size: 12, weight: .medium))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
+                            Image(systemName: "calendar.badge.plus")
+                            Text(l10n.requestCalendarAccess)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.08))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(24)
+            .padding(.leading, 12)
+            .padding(.vertical, 4)
         }
-        .scrollIndicators(.visible)
-        .frame(width: 480, height: 600)
-        .onAppear {
-            calendarSync.checkAuthorization()
+        .toggleStyle(.switch)
+    }
+
+    private var categoriesSection: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+        return VStack(alignment: .leading, spacing: 18) {
+            // 作業カテゴリ管理
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(l10n.categoryManagementHeader)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(l10n.categoryManagementDesc)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.8))
+                }
+
+                // カテゴリ一覧
+                Button {
+                    categoryEditor = CategoryEditorRequest(category: nil)
+                } label: {
+                    Label(l10n.addNewCategoryButton, systemImage: "plus")
+                }
+                .controlSize(.regular)
+
+                VStack(spacing: 4) {
+                    ForEach(categoryManager.allCategories) { cat in
+                        let isVisible = !categoryManager.isHidden(cat)
+                        HStack {
+                            Text(cat.localizedTitle(for: lang))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(isVisible ? .white : .secondary.opacity(0.6))
+
+                            if cat.isPreset {
+                                Text(l10n.preset)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary.opacity(0.7))
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.white.opacity(0.06))
+                                    .clipShape(Capsule())
+                            }
+
+                            Spacer()
+
+                            // 表示 / 非表示 トグルスイッチ
+                            Toggle("", isOn: Binding<Bool>(
+                                get: { !categoryManager.isHidden(cat) },
+                                set: { _ in categoryManager.toggleVisibility(for: cat) }
+                            ))
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
+                            .help(l10n.categoryVisibleHelp(isVisible))
+
+                            // カスタムカテゴリの編集・削除ボタン
+                            if !cat.isPreset {
+                                Button(action: {
+                                categoryEditor = CategoryEditorRequest(category: cat)
+                                }) {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.blue.opacity(0.85))
+                                        .padding(4)
+                                        .background(Color.blue.opacity(0.12))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .help(l10n.editCategoryHelp)
+
+                                Button(action: {
+                                    categoryManager.deleteCustomCategory(id: cat.id)
+                                }) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.red.opacity(0.8))
+                                        .padding(4)
+                                        .background(Color.red.opacity(0.12))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .help(l10n.deleteCategoryHelp)
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(isVisible ? 0.05 : 0.02))
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                    }
+                }
+            }
+
+            Divider()
+
+            // 稼働ログ・統計
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l10n.activityLogsHeader)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                Button(action: {
+                    StatsWindowManager.shared.show()
+                }) {
+                    HStack {
+                        Label(l10n.activityLogsButton, systemImage: "chart.bar.doc.horizontal")
+                            .font(.system(size: 12, weight: .medium))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .sheet(isPresented: $showCategoryEditSheet) {
-            CategoryEditSheet(categoryToEdit: categoryToEdit) {
-                showCategoryEditSheet = false
-                categoryToEdit = nil
+        .toggleStyle(.switch)
+    }
+
+}
+
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case timer, app, calendar, categories
+    var id: String { rawValue }
+
+    func title(for language: AppLanguage) -> String {
+        let l10n = L10n(language: language)
+        switch self {
+        case .timer: return l10n.settingsTabTimer
+        case .app: return l10n.settingsTabApp
+        case .calendar: return l10n.settingsTabCalendar
+        case .categories: return l10n.settingsTabCategories
+        }
+    }
+}
+
+struct AlwaysShowVerticalScrollBar: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let scrollView = view.enclosingScrollView {
+                scrollView.hasVerticalScroller = true
+                scrollView.autohidesScrollers = false
+                scrollView.scrollerStyle = .legacy
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            if let scrollView = nsView.enclosingScrollView {
+                scrollView.hasVerticalScroller = true
+                scrollView.autohidesScrollers = false
+                scrollView.scrollerStyle = .legacy
             }
         }
     }

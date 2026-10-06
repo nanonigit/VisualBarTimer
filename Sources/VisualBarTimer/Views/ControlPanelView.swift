@@ -17,6 +17,9 @@ struct ControlPanelView: View {
     ]
     
     var body: some View {
+        let l10n = settings.l10n
+        let lang = settings.language
+
         VStack(spacing: 8) {
             // プリセットボタン ＋ 直接分数入力
             HStack(spacing: 4) {
@@ -41,7 +44,7 @@ struct ControlPanelView: View {
                 
                 // 直接分数入力 (クイックセット)
                 HStack(spacing: 2) {
-                    TextField("分", text: $customMinText)
+                    TextField(l10n.quickMinPlaceholder, text: $customMinText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
@@ -54,7 +57,7 @@ struct ControlPanelView: View {
                             submitCustomTime()
                         }
                     
-                    Text("m")
+                    Text(l10n.minUnit)
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(.secondary)
                     
@@ -69,7 +72,7 @@ struct ControlPanelView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("入力した分数をセット")
+                    .help(l10n.quickMinHelp)
                 }
                 .padding(.leading, 4)
             }
@@ -80,7 +83,7 @@ struct ControlPanelView: View {
                 Button(action: {
                     engine.toggle()
                 }) {
-                    Label(engine.isRunning ? "一時停止" : "スタート", systemImage: engine.isRunning ? "pause.fill" : "play.fill")
+                    Label(engine.isRunning ? l10n.pause : l10n.start, systemImage: engine.isRunning ? "pause.fill" : "play.fill")
                         .font(.system(size: 11, weight: .bold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -95,7 +98,7 @@ struct ControlPanelView: View {
                 Button(action: {
                     engine.reset()
                 }) {
-                    Label("リセット", systemImage: "arrow.counterclockwise")
+                    Label(l10n.reset, systemImage: "arrow.counterclockwise")
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
@@ -120,7 +123,7 @@ struct ControlPanelView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .help(settings.windowPlacement.rawValue)
+                .help(settings.windowPlacement.title(for: lang))
                 
                 // 向き切り替え
                 Button(action: {
@@ -136,34 +139,34 @@ struct ControlPanelView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .help("縦向き/横向き切り替え")
+                .help(l10n.toggleOrientationHelp)
                 
                 // 歯車プルダウンメニュー
                 Menu {
                     Button(action: {
                         SettingsWindowManager.shared.show(engine: engine, settings: settings)
                     }) {
-                        Label("設定...", systemImage: "gearshape")
+                        Label(l10n.settingsMenu, systemImage: "gearshape")
                     }
                     
                     Button(action: {
                         StatsWindowManager.shared.show()
                     }) {
-                        Label("本日の稼働統計・ログ...", systemImage: "chart.bar.doc.horizontal")
+                        Label(l10n.statsMenu, systemImage: "chart.bar.doc.horizontal")
                     }
                     
                     Divider()
                     
                     // ウィンドウ配置サブメニュー
-                    Menu("ウィンドウ配置モード") {
+                    Menu(l10n.windowPlacementMenu) {
                         ForEach(WindowPlacement.allCases) { placement in
                             Button(action: {
                                 settings.windowPlacement = placement
                             }) {
                                 if settings.windowPlacement == placement {
-                                    Label(placement.rawValue, systemImage: "checkmark")
+                                    Label(placement.title(for: lang), systemImage: "checkmark")
                                 } else {
-                                    Label(placement.rawValue, systemImage: placement.icon)
+                                    Label(placement.title(for: lang), systemImage: placement.icon)
                                 }
                             }
                         }
@@ -174,13 +177,13 @@ struct ControlPanelView: View {
                     Button(action: {
                         engine.toggle()
                     }) {
-                        Label(engine.isRunning ? "一時停止" : "スタート", systemImage: engine.isRunning ? "pause.fill" : "play.fill")
+                        Label(engine.isRunning ? l10n.pause : l10n.start, systemImage: engine.isRunning ? "pause.fill" : "play.fill")
                     }
                     
                     Button(action: {
                         engine.reset()
                     }) {
-                        Label("リセット", systemImage: "arrow.counterclockwise")
+                        Label(l10n.reset, systemImage: "arrow.counterclockwise")
                     }
                     
                     Divider()
@@ -188,7 +191,7 @@ struct ControlPanelView: View {
                     Button(action: {
                         NSApp.terminate(nil)
                     }) {
-                        Label("VisualBarTimer を終了", systemImage: "power")
+                        Label(l10n.quitApp, systemImage: "power")
                     }
                 } label: {
                     Image(systemName: "gearshape.fill")
@@ -200,7 +203,7 @@ struct ControlPanelView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .help("メニュー & 設定")
+                .help(l10n.menuAndSettingsHelp)
             }
         }
     }

@@ -16,6 +16,17 @@ enum WindowPlacement: String, CaseIterable, Identifiable, Codable {
         case .desktopWidget: return "desktopcomputer"
         }
     }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.floating, .japanese): return "常に最前面 (Float on Top)"
+        case (.floating, .english): return "Always on Top (Floating)"
+        case (.normal, .japanese): return "標準ウィンドウ (Normal)"
+        case (.normal, .english): return "Normal Window"
+        case (.desktopWidget, .japanese): return "デスクトップに貼り付け (壁紙最背面ウィジェット)"
+        case (.desktopWidget, .english): return "Desktop Widget (Behind windows)"
+        }
+    }
 }
 
 enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
@@ -28,6 +39,25 @@ enum MenuBarDisplayFormat: String, CaseIterable, Identifiable, Codable {
     case iconOnly = "固定アイコンのみ (⏱️)"
     
     var id: String { rawValue }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.pieChartWithCenterTotal, .japanese): return "円グラフ（中央に本日累計分を表示）"
+        case (.pieChartWithCenterTotal, .english): return "Pie chart (Total focus in center)"
+        case (.pieChartOnly, .japanese): return "リアルタイム円グラフ (アイコンのみ)"
+        case (.pieChartOnly, .english): return "Live pie chart (Icon only)"
+        case (.pieChartWithRemaining, .japanese): return "リアルタイム円グラフ ＋ 残り時間 (⏱️ 08:30)"
+        case (.pieChartWithRemaining, .english): return "Live pie chart + Remaining (⏱️ 08:30)"
+        case (.english, .japanese): return "m 表示 (⏱️ 45m)"
+        case (.english, .english): return "Minutes display (⏱️ 45m)"
+        case (.japanese, .japanese): return "分 表示 (⏱️ 45分)"
+        case (.japanese, .english): return "Japanese min display (⏱️ 45分)"
+        case (.numberOnly, .japanese): return "数字のみ (45)"
+        case (.numberOnly, .english): return "Number only (45)"
+        case (.iconOnly, .japanese): return "固定アイコンのみ (⏱️)"
+        case (.iconOnly, .english): return "Static icon only (⏱️)"
+        }
+    }
 }
 
 enum CloseAction: String, CaseIterable, Identifiable, Codable {
@@ -35,6 +65,15 @@ enum CloseAction: String, CaseIterable, Identifiable, Codable {
     case quit = "アプリを完全に終了"
     
     var id: String { rawValue }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.hideToMenuBar, .japanese): return "メニューバーに隠す (バックグラウンド常駐)"
+        case (.hideToMenuBar, .english): return "Hide to Menu Bar (Run in background)"
+        case (.quit, .japanese): return "アプリを完全に終了"
+        case (.quit, .english): return "Quit application completely"
+        }
+    }
 }
 
 enum TimerOrientation: String, CaseIterable, Identifiable, Codable {
@@ -49,6 +88,15 @@ enum TimerOrientation: String, CaseIterable, Identifiable, Codable {
         case .vertical: return "rectangle.split.1x3"
         }
     }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.horizontal, .japanese): return "横向き (Horizontal)"
+        case (.horizontal, .english): return "Horizontal"
+        case (.vertical, .japanese): return "縦向き (Vertical)"
+        case (.vertical, .english): return "Vertical"
+        }
+    }
 }
 
 enum TimerTheme: String, CaseIterable, Identifiable, Codable {
@@ -61,6 +109,15 @@ enum TimerTheme: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .color: return "paintpalette.fill"
         case .monochrome: return "circle.lefthalf.filled"
+        }
+    }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.color, .japanese): return "カラー (Green/Yellow/Red)"
+        case (.color, .english): return "Color (Green/Yellow/Red)"
+        case (.monochrome, .japanese): return "白黒 (Monochrome)"
+        case (.monochrome, .english): return "Monochrome"
         }
     }
 }
@@ -79,6 +136,19 @@ enum TimerSize: String, CaseIterable, Identifiable, Codable {
         case .small: return 0.8
         case .medium: return 1.0
         case .large: return 1.3
+        }
+    }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.extraSmall, .japanese): return "極小 (Mini)"
+        case (.extraSmall, .english): return "Mini"
+        case (.small, .japanese): return "小 (Small)"
+        case (.small, .english): return "Small"
+        case (.medium, .japanese): return "中 (Medium)"
+        case (.medium, .english): return "Medium"
+        case (.large, .japanese): return "大 (Large)"
+        case (.large, .english): return "Large"
         }
     }
     
@@ -108,15 +178,49 @@ enum TimerMode: String, CaseIterable, Identifiable, Codable {
     case pomodoro = "ポモドーロ"
     
     var id: String { rawValue }
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.countdown, .japanese): return "カウントダウン"
+        case (.countdown, .english): return "Countdown"
+        case (.countup, .japanese): return "カウントアップ"
+        case (.countup, .english): return "Count Up"
+        case (.pomodoro, .japanese): return "ポモドーロ"
+        case (.pomodoro, .english): return "Pomodoro"
+        }
+    }
 }
 
 enum PomodoroPhase: String {
     case work = "集中 (Work)"
     case rest = "休憩 (Break)"
+
+    func title(for lang: AppLanguage) -> String {
+        switch (self, lang) {
+        case (.work, .japanese): return "集中 (Work)"
+        case (.work, .english): return "Focus (Work)"
+        case (.rest, .japanese): return "休憩 (Break)"
+        case (.rest, .english): return "Break"
+        }
+    }
 }
 
 @MainActor
 class TimerSettings: ObservableObject {
+    @Published var language: AppLanguage {
+        didSet {
+            UserDefaults.standard.set(language.rawValue, forKey: "saved_language")
+            MenuBarManager.shared.updateContextMenu()
+            MenuBarManager.shared.updateTitle()
+            SettingsWindowManager.shared.updateTitle(settings: self)
+            StatsWindowManager.shared.updateTitle()
+        }
+    }
+
+    var l10n: L10n {
+        L10n(language: language)
+    }
+
     @Published var orientation: TimerOrientation {
         didSet { UserDefaults.standard.set(orientation.rawValue, forKey: "saved_orientation") }
     }
@@ -187,6 +291,13 @@ class TimerSettings: ObservableObject {
     }
     
     init() {
+        if let rawLang = UserDefaults.standard.string(forKey: "saved_language"),
+           let lang = AppLanguage(rawValue: rawLang) {
+            self.language = lang
+        } else {
+            self.language = .english
+        }
+
         if let rawClose = UserDefaults.standard.string(forKey: "saved_close_action"),
            let action = CloseAction(rawValue: rawClose) {
             self.closeAction = action
