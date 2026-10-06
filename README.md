@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/preview_color_medium.png" width="460" alt="VisualBarTimer Medium Preview">
+  <img src="docs/images/demo.gif" width="560" alt="VisualBarTimer Countdown Demo">
 </p>
 
 ---
