@@ -95,6 +95,13 @@ brew install --cask nanonigit/visual-bar-timer/visual-bar-timer
 #### Manual Download
 Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.com/nanonigit/VisualBarTimer/releases), unzip, and move `VisualBarTimer.app` to your `/Applications` folder.
 
+> **Gatekeeper Notice:**  
+> Since VisualBarTimer is free, open-source, and ad-hoc signed, macOS may report that the app *"is damaged and can't be opened"* or *"cannot be verified"*. If so, simply run this one-line command in Terminal:
+> ```bash
+> xattr -cr /Applications/VisualBarTimer.app
+> ```
+> *(Or right-click `VisualBarTimer.app` in Finder and select **Open**).*
+
 ---
 
 ### ⌨️ Shortcuts
@@ -154,6 +161,13 @@ brew install --cask nanonigit/visual-bar-timer/visual-bar-timer
 
 #### 手動ダウンロード
 [GitHub Releases](https://github.com/nanonigit/VisualBarTimer/releases) から最新の `VisualBarTimer.zip` をダウンロード・展開し、`VisualBarTimer.app` を `/Applications`（アプリケーション）フォルダに移動してください。
+
+> **署名・起動について（Gatekeeperの回避）:**  
+> 本アプリはオープンソースのアドホック署名のため、初回起動時に macOS から「壊れているため開けません」「開発元を検証できません」と表示される場合があります。その場合はターミナルで以下の1行を実行してください：
+> ```bash
+> xattr -cr /Applications/VisualBarTimer.app
+> ```
+> *(または Finder でアプリを右クリックして「開く」を選択)*
 
 ---
 

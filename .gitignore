@@ -3,3 +3,4 @@
 /.swiftpm
 /build
 *.zip
+.codex/
