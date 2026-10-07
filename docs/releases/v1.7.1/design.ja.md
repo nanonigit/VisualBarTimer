@@ -1,0 +1,3 @@
+# リリース設計
+
+バンドル・ZIP作成をscripts/package_app.shへ抽出し、install_app.shは明示的なインストール処理にする。バージョン1.7.1・ビルド47を埋め込み、従来のアドホック配布方式でバンドル全体へ署名する。dittoでVisualBarTimer.appのみを圧縮。arm64・未公証を明示した英日リリースノートを公開する。公開ZIPをダウンロードしSHA-256を確認してからHomebrew更新を公開する。配布作業のみでLazywebは対象外。

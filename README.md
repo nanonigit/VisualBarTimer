@@ -50,6 +50,8 @@
 
 ### ✨ Key Features
 
+* **English / Japanese Settings**: Switch languages in Settings → Timer. Settings are organized into Timer, App, Calendar and Categories tabs, with a Close button that stays visible. Add or edit custom categories directly from Settings → Categories.
+
 * **Visual LED Bar**:
   * **Horizontal Mode**: Time drains from right to left with precision tick marks.
   * **Vertical Mode**: Time drains from top to bottom.
@@ -93,6 +95,8 @@ brew install --cask nanonigit/visual-bar-timer/visual-bar-timer
 ```
 
 #### Manual Download
+Prebuilt releases are for Apple Silicon Macs (arm64), macOS 13 or later.
+
 Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.com/nanonigit/VisualBarTimer/releases), unzip, and move `VisualBarTimer.app` to your `/Applications` folder.
 
 > **Gatekeeper Notice:**  
@@ -116,6 +120,8 @@ Download the latest `VisualBarTimer.zip` from [GitHub Releases](https://github.c
 ## 日本語
 
 ### ✨ 主な機能
+
+* **英語・日本語対応の設定画面**: 設定 → タイマーで表示言語を切り替え。タイマー・アプリ・カレンダー・カテゴリの4タブに整理し、閉じるボタンを常時表示。設定 → カテゴリからカスタムカテゴリの追加・編集が可能。
 
 * **視覚的LEDバー表示**:
   * **横向き**: 右から左へ目盛が減少（直感的な残り時間把握）
@@ -160,6 +166,8 @@ brew install --cask nanonigit/visual-bar-timer/visual-bar-timer
 ```
 
 #### 手動ダウンロード
+配布済みアプリはApple Silicon Mac（arm64）、macOS 13以降向けです。
+
 [GitHub Releases](https://github.com/nanonigit/VisualBarTimer/releases) から最新の `VisualBarTimer.zip` をダウンロード・展開し、`VisualBarTimer.app` を `/Applications`（アプリケーション）フォルダに移動してください。
 
 > **署名・起動について（Gatekeeperの回避）:**  
